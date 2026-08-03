@@ -111,7 +111,9 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Fixed Frame: world
-    Frame Rate: 30
+    # See moveit.rviz: 30 fps of CPU-rendered redraws is the dominant idle load
+    # in Docker view mode.
+    Frame Rate: 10
   Name: root
   Tools:
     - Class: rviz_default_plugins/Interact

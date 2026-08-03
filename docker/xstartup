@@ -1,0 +1,20 @@
+#!/bin/bash
+# VNC session for the RViz desktop.
+#
+# Default is a bare window manager: RViz is the only app that needs to run, and
+# a full XFCE session adds a compositor, desktop, panel and settings daemons
+# that all redraw through the same software OpenGL stack RViz uses.
+#
+# Set TUWRC_VNC_SESSION=full to get the complete XFCE desktop instead (useful
+# if you want a file manager or a terminal inside noVNC).
+
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+
+if [[ "${TUWRC_VNC_SESSION:-light}" == "full" ]]; then
+  exec startxfce4
+fi
+
+# --compositor=off matters: compositing on llvmpipe costs a full-screen blit
+# per frame on the CPU.
+exec xfwm4 --compositor=off

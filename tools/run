@@ -11,6 +11,7 @@ PORT="/dev/ttyACM0"
 USE_RVIZ="true"
 USE_MOVEIT="true"
 USE_GUI="true"
+VNC_GEOMETRY="${TUWRC_VNC_GEOMETRY:-1600x900}"
 
 usage() {
   cat <<'EOF'
@@ -23,7 +24,13 @@ Options:
   --no-rviz                do not start RViz
   --no-moveit              do not start MoveIt
   --no-gui                 do not start the browser GUI
+  --geometry WxH           noVNC desktop size, Docker only (default: 1600x900)
   -h, --help               show this help
+
+Lightweight tips (Docker on macOS/Windows renders RViz on the CPU):
+  --no-rviz                biggest single saving; the browser GUI still works
+  --no-moveit              drops move_group and uses the plain RobotModel view
+  --geometry 1280x720      smaller framebuffer to rasterize and VNC-encode
 
 Auto-detect:
   macOS / WSL            → Docker view mode
@@ -39,6 +46,7 @@ while [[ $# -gt 0 ]]; do
     --no-rviz) USE_RVIZ="false"; shift ;;
     --no-moveit) USE_MOVEIT="false"; shift ;;
     --no-gui) USE_GUI="false"; shift ;;
+    --geometry) VNC_GEOMETRY="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
   esac
@@ -115,6 +123,12 @@ run_docker() {
     exit 1
   fi
   export TUWRC_MODE="$MODE"
+  # These were previously parsed and then silently dropped, so --no-rviz and
+  # friends had no effect on the only platforms that use the Docker runtime.
+  export TUWRC_USE_RVIZ="$USE_RVIZ"
+  export TUWRC_USE_MOVEIT="$USE_MOVEIT"
+  export TUWRC_USE_GUI="$USE_GUI"
+  export TUWRC_VNC_GEOMETRY="$VNC_GEOMETRY"
   docker compose --profile view up --build
 }
 

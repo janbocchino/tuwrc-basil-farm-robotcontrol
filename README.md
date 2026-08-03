@@ -61,6 +61,37 @@ Stop with `Ctrl+C` in the terminal, or:
 docker compose --profile view down
 ```
 
+#### If your machine gets hot
+
+Docker on macOS and Windows has no GPU to pass through, so RViz is rendered
+entirely on the CPU. RViz is by far the most expensive process in view mode —
+it redraws continuously even when the robot is still and even when no browser
+is connected to noVNC. The other nodes together use only a few percent.
+
+Measured on an M-series Mac (10-CPU Docker VM), idle and stationary:
+
+| Command                                | Container CPU |
+| -------------------------------------- | ------------- |
+| `./tools/run --mode view`              | ~140 %        |
+| `./tools/run --mode view --no-moveit`  | ~57 %         |
+| `./tools/run --mode view --no-rviz`    | ~10 %         |
+
+`--no-rviz` keeps the browser GUI at [http://localhost:3000](http://localhost:3000)
+fully working — joint control, the end-effector pose readout and MoveIt IK all
+still function. You only lose the 3D view. This is the recommended way to work
+when you do not need to watch the robot.
+
+Further knobs (environment variables, all optional):
+
+| Variable              | Default     | Effect                                                     |
+| --------------------- | ----------- | ---------------------------------------------------------- |
+| `TUWRC_VNC_GEOMETRY`  | `1600x900`  | noVNC desktop size; smaller = less to rasterize and encode |
+| `LP_NUM_THREADS`      | `4`         | Caps the software renderer's threads                       |
+| `TUWRC_MOCK_RATE`     | `20.0`      | `/joint_states` publish rate in Hz (view mode)             |
+| `TUWRC_VNC_SESSION`   | `light`     | `full` gives the complete XFCE desktop inside noVNC        |
+
+`--geometry` on `./tools/run` sets `TUWRC_VNC_GEOMETRY` for you.
+
 
 
 ### Windows (WSL2)
@@ -271,6 +302,7 @@ If RViz shows missing meshes, you probably forgot `git lfs pull`.
 | No `/dev/ttyACM*`             | Check USB cable; on WSL use `usbipd`; on Linux join `dialout`               |
 | Hardware refused in Docker    | Expected — use native Ubuntu                                                |
 | Controllers not ready in GUI  | Wait for bringup; check terminal logs                                       |
+| Mac fans spin up in view mode | Expected — RViz renders on the CPU. Use `--no-rviz`; see "If your machine gets hot" |
 | `colcon` / ROS missing on Mac | Use Docker view mode; do not install ROS natively on macOS for this project |
 
 

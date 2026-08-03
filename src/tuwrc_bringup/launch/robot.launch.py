@@ -21,6 +21,7 @@ def launch_setup(context):
     use_gui = LaunchConfiguration("use_gui").perform(context).lower() == "true"
     port = LaunchConfiguration("port").perform(context)
     gui_port = LaunchConfiguration("gui_port").perform(context)
+    mock_rate = float(LaunchConfiguration("mock_rate").perform(context))
 
     desc_share = Path(get_package_share_directory("lerobot_description"))
     driver_share = Path(get_package_share_directory("six_motor_driver"))
@@ -56,6 +57,7 @@ def launch_setup(context):
             Node(
                 package="tuwrc_mock_hardware",
                 executable="mock_hardware",
+                parameters=[{"publish_rate_hz": mock_rate}],
                 output="screen",
             )
         )
@@ -157,6 +159,18 @@ def generate_launch_description():
             DeclareLaunchArgument("use_gui", default_value="true"),
             DeclareLaunchArgument("port", default_value="/dev/ttyACM0"),
             DeclareLaunchArgument("gui_port", default_value="3000"),
+            DeclareLaunchArgument(
+                "mock_rate",
+                default_value="20.0",
+                description=(
+                    "view mode only: /joint_states publish rate in Hz. Every "
+                    "sample wakes robot_state_publisher, RViz, move_group and "
+                    "the GUI, so this is a constant idle cost. 20 Hz stays "
+                    "above the GUI's 10 Hz stream and looks smooth in RViz; "
+                    "trajectory execution is interpolated separately and is "
+                    "not affected."
+                ),
+            ),
             OpaqueFunction(function=launch_setup),
         ]
     )

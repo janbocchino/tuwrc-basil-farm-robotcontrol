@@ -12,12 +12,23 @@ services:
     environment:
       - QT_X11_NO_MITSHM=1
       - LIBGL_ALWAYS_SOFTWARE=1
+      # Software-rendering load knobs. LP_NUM_THREADS caps llvmpipe's
+      # rasterizer threads so RViz cannot pin every core of the Docker VM.
+      - LP_NUM_THREADS=${LP_NUM_THREADS:-4}
+      - TUWRC_VNC_GEOMETRY=${TUWRC_VNC_GEOMETRY:-1600x900}
+      - TUWRC_VNC_SESSION=${TUWRC_VNC_SESSION:-light}
       - TUWRC_MODE=${TUWRC_MODE:-view}
+      - TUWRC_USE_RVIZ=${TUWRC_USE_RVIZ:-true}
+      - TUWRC_USE_MOVEIT=${TUWRC_USE_MOVEIT:-true}
+      - TUWRC_USE_GUI=${TUWRC_USE_GUI:-true}
+      - TUWRC_MOCK_RATE=${TUWRC_MOCK_RATE:-20.0}
     ports:
       - "6080:6080"
       - "5901:5901"
       - "3000:3000"
-    shm_size: "2gb"
+    # DDS shared-memory transport only carries small joint-state messages here;
+    # 2 GB of tmpfs was a quarter of the default Docker VM's RAM.
+    shm_size: "512m"
     profiles: ["view"]
 
 volumes:

@@ -1,0 +1,15 @@
+# Keep the build context small: everything here is either regenerated inside
+# the container or irrelevant to the image.
+.git
+.gitattributes
+.gitignore
+build/
+install/
+log/
+.devcontainer/
+**/__pycache__/
+**/*.pyc
+.DS_Store
+.env
+.vscode/
+.idea/
