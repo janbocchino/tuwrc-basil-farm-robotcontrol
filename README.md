@@ -1,5 +1,7 @@
 # tuwrc-basil-farm-robotcontrol
 
+GitHub: [https://github.com/janbocchino/tuwrc-basil-farm-robotcontrol](https://github.com/janbocchino/tuwrc-basil-farm-robotcontrol)
+
 One shared ROS 2 project for the TUWRC basil-farm robot: Max’s measured SO-101 arm on the prismatic X-rail, with RViz, MoveIt, a browser GUI, mock view mode, and real arm hardware support on Linux.
 
 You do **not** need deep ROS knowledge to start. Use the commands below for your operating system.
@@ -164,10 +166,11 @@ Both modes use the same actions:
 
 ```bash
 git lfs install
-git clone <REPO_URL> tuwrc-basil-farm-robotcontrol
+git clone git@github.com:janbocchino/tuwrc-basil-farm-robotcontrol.git
 cd tuwrc-basil-farm-robotcontrol
 git lfs pull
 ```
+
 
 ### Daily work
 
