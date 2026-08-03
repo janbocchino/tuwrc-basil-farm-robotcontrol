@@ -19,6 +19,7 @@ setup(
     entry_points={
         "console_scripts": [
             "small_arm_motion = tuwrc_motion_examples.small_arm_motion:main",
+            "leaf_pick_imitation = tuwrc_motion_examples.leaf_pick_imitation:main",
         ],
     },
 )

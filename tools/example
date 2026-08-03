@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Run a tuwrc_motion_examples console script with ROS env already set up.
+# Usage: ./tools/example leaf_pick_imitation --move-rail --return-home
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+if [[ $# -lt 1 || "$1" == "-h" || "$1" == "--help" ]]; then
+  cat <<'EOF'
+Usage: ./tools/example <script> [args...]
+
+Examples:
+  ./tools/example small_arm_motion --return-home
+  ./tools/example leaf_pick_imitation --move-rail --return-home
+  ./tools/example leaf_pick_imitation --scale 0.5 --return-home
+
+Bringup must already be running (./tools/run --mode view).
+EOF
+  exit 0
+fi
+
+SCRIPT="$1"
+shift
+
+ros_cmd=(ros2 run tuwrc_motion_examples "$SCRIPT" -- "$@")
+
+if docker compose ps --status running --services 2>/dev/null | grep -qx robot; then
+  # Quote args safely for bash -lc inside the container.
+  remote=$(printf '%q ' "${ros_cmd[@]}")
+  exec docker compose exec robot bash -lc \
+    "source /opt/ros/jazzy/setup.bash && source /workspace/install/setup.bash && ${remote}"
+fi
+
+if [[ -f /opt/ros/jazzy/setup.bash && -f "$ROOT/install/setup.bash" ]]; then
+  # shellcheck disable=SC1091
+  source /opt/ros/jazzy/setup.bash
+  # shellcheck disable=SC1091
+  source "$ROOT/install/setup.bash"
+  exec "${ros_cmd[@]}"
+fi
+
+echo "No running Docker view container and no native ROS install found." >&2
+echo "Start bringup first: ./tools/run --mode view" >&2
+exit 1

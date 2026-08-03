@@ -143,22 +143,21 @@ In **view** mode, use the browser GUI:
 4. Click **Send**.
 5. Watch RViz update.
 
-Optional scripted motion (with bringup already running):
+Optional scripted motion (with bringup already running). `./tools/example`
+handles Docker vs native ROS env setup for you:
 
 ```bash
-# macOS / Windows (Docker view mode)
-docker compose exec robot bash -lc \
-  'source /opt/ros/jazzy/setup.bash && source /workspace/install/setup.bash && \
-   ros2 run tuwrc_motion_examples small_arm_motion -- --return-home'
+./tools/example small_arm_motion --return-home
+./tools/example leaf_pick_imitation --move-rail --return-home
+./tools/example leaf_pick_imitation --scale 0.5 --return-home
 
-# Native Ubuntu — view / mock
-ros2 run tuwrc_motion_examples small_arm_motion -- --return-home
-
-# Native Ubuntu — real hardware (extra confirmation required)
-ros2 run tuwrc_motion_examples small_arm_motion -- \
-  --hardware --allow-hardware --return-home
+# Real hardware (native Ubuntu only; extra confirmation required)
+./tools/example small_arm_motion --hardware --allow-hardware --return-home
+./tools/example leaf_pick_imitation --hardware --allow-hardware --scale 0.5 --return-home
 ```
 
+`leaf_pick_imitation` is a jaw open/close snip gesture (no cutter tool).
+`--move-rail` is view-mode only.
 
 
 ## Repository map
@@ -171,6 +170,7 @@ tuwrc-basil-farm-robotcontrol/
 ├── docker-compose.yml
 ├── docker/                   ← container entrypoint
 ├── tools/run                 ← cross-platform start script
+├── tools/example             ← short runner for motion example scripts
 ├── tests/                    ← offline contract tests
 └── src/
     ├── lerobot_description/  ← URDF/xacro, meshes, RViz display config
@@ -179,7 +179,7 @@ tuwrc-basil-farm-robotcontrol/
     ├── lerobot_gui/          ← browser UI (port 3000)
     ├── tuwrc_bringup/        ← unified launch: view | hardware
     ├── tuwrc_mock_hardware/  ← mock arm+rail (view) and rail_hold (hardware)
-    └── tuwrc_motion_examples/← small_arm_motion example
+    └── tuwrc_motion_examples/← small_arm_motion + leaf_pick_imitation
 ```
 
 Important files:

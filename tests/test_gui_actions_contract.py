@@ -11,6 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "src/lerobot_gui/lerobot_gui/joint_state_gui.py"
 MOCK = ROOT / "src/tuwrc_mock_hardware/tuwrc_mock_hardware/mock_hardware.py"
 MOTION = ROOT / "src/tuwrc_motion_examples/tuwrc_motion_examples/small_arm_motion.py"
+LEAF_PICK = (
+    ROOT / "src/tuwrc_motion_examples/tuwrc_motion_examples/leaf_pick_imitation.py"
+)
 
 
 def fail(message: str) -> None:
@@ -47,6 +50,15 @@ def main() -> None:
     motion = MOTION.read_text(encoding="utf-8")
     if "--allow-hardware" not in motion:
         fail("small_arm_motion must require --allow-hardware for real hardware")
+
+    leaf = LEAF_PICK.read_text(encoding="utf-8")
+    for token in (
+        "--allow-hardware",
+        "/six_motor_controller/follow_joint_trajectory",
+        "/rail_controller/follow_joint_trajectory",
+    ):
+        if token not in leaf:
+            fail(f"leaf_pick_imitation missing expected token: {token}")
 
     print("OK: GUI/action contract checks passed")
 
