@@ -112,14 +112,19 @@ In **view** mode, use the browser GUI:
 4. Click **Send**.
 5. Watch RViz update.
 
-Optional scripted motion (view or hardware):
+Optional scripted motion (with bringup already running):
 
 ```bash
-# view / mock
-ros2 run tuwrc_motion_examples small_arm_motion --ros-args -- --return-home
+# macOS / Windows (Docker view mode)
+docker compose exec robot bash -lc \
+  'source /opt/ros/jazzy/setup.bash && source /workspace/install/setup.bash && \
+   ros2 run tuwrc_motion_examples small_arm_motion -- --return-home'
 
-# real hardware (extra confirmation required)
-ros2 run tuwrc_motion_examples small_arm_motion --ros-args -- \
+# Native Ubuntu — view / mock
+ros2 run tuwrc_motion_examples small_arm_motion -- --return-home
+
+# Native Ubuntu — real hardware (extra confirmation required)
+ros2 run tuwrc_motion_examples small_arm_motion -- \
   --hardware --allow-hardware --return-home
 ```
 
