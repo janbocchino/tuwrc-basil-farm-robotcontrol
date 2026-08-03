@@ -4,30 +4,40 @@ GitHub: [https://github.com/janbocchino/tuwrc-basil-farm-robotcontrol](https://g
 
 One shared ROS 2 project for the TUWRC basil-farm robot: Max’s measured SO-101 arm on the prismatic X-rail, with RViz, MoveIt, a browser GUI, mock view mode, and real arm hardware support on Linux.
 
-You do **not** need deep ROS knowledge to start. Use the commands below for your operating system.
-
 ## What this project does
 
-| Mode | What you get | Who should use it |
-|------|--------------|-------------------|
-| **view** | Simulated joint motion in RViz + browser GUI | Everyone (macOS, Windows/WSL, Linux) |
-| **hardware** | Real six-servo arm over USB + rail held at 0 m | Native Ubuntu (recommended) |
+
+| Mode         | What you get                                   | Who should use it                    |
+| ------------ | ---------------------------------------------- | ------------------------------------ |
+| **view**     | Simulated joint motion in RViz + browser GUI   | Everyone (macOS, Windows/WSL, Linux) |
+| **hardware** | Real six-servo arm over USB + rail held at 0 m | Native Ubuntu (recommended)          |
+
 
 Gazebo is intentionally **not** required for the MVP. The physical rail motor is also **not** supported yet; in hardware mode the rail stays fixed at zero.
 
 ## Prerequisites
 
+
+
 ### All platforms
+
 - Git
 - Git LFS (`git lfs install`)
 - Docker Desktop or Docker Engine (**required on macOS / Windows**; optional on Linux)
 
+
+
 ### Native Ubuntu 24.04 (hardware and native view)
+
 - ROS 2 **Jazzy**
 - Packages used by this workspace: `rviz2`, `xacro`, `robot-state-publisher`, `moveit`, `control-msgs`, `python3-serial`, `python3-yaml`, `python3-colcon-common-extensions`
 - User in the `dialout` group for USB serial
 
+
+
 ## Quick start
+
+
 
 ### macOS
 
@@ -41,15 +51,17 @@ cd tuwrc-basil-farm-robotcontrol
 ./tools/run --mode view
 ```
 
-5. Open:
-   - RViz desktop: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html) (password: `ros`)
-   - Browser GUI: [http://localhost:3000](http://localhost:3000)
+1. Open:
+  - RViz desktop: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html) (password: `ros`)
+  - Browser GUI: [http://localhost:3000](http://localhost:3000)
 
 Stop with `Ctrl+C` in the terminal, or:
 
 ```bash
 docker compose --profile view down
 ```
+
+
 
 ### Windows (WSL2)
 
@@ -62,7 +74,7 @@ docker compose --profile view down
 ./tools/run --mode view
 ```
 
-5. Open the same URLs as macOS from the Windows browser (`localhost:6080` and `:3000`).
+1. Open the same URLs as macOS from the Windows browser (`localhost:6080` and `:3000`).
 
 USB hardware through WSL (`usbipd-win`) is **experimental** and not the default path.
 
@@ -111,6 +123,8 @@ ros2 run tuwrc_motion_examples small_arm_motion --ros-args -- \
   --hardware --allow-hardware --return-home
 ```
 
+
+
 ## Repository map
 
 ```text
@@ -134,14 +148,18 @@ tuwrc-basil-farm-robotcontrol/
 
 Important files:
 
-| Path | Purpose |
-|------|---------|
-| `src/lerobot_description/urdf/so101_base.xacro` | Rail + measured arm model |
-| `src/lerobot_description/meshes/` | STL meshes (Git LFS) |
-| `src/six_motor_driver/config/six_motor_calibration.yaml` | Real-robot calibration |
-| `src/tuwrc_bringup/launch/robot.launch.py` | Main launch file |
-| `src/lerobot_gui/lerobot_gui/joint_state_gui.py` | Browser GUI |
-| `tools/run` | OS-aware launcher |
+
+| Path                                                     | Purpose                   |
+| -------------------------------------------------------- | ------------------------- |
+| `src/lerobot_description/urdf/so101_base.xacro`          | Rail + measured arm model |
+| `src/lerobot_description/meshes/`                        | STL meshes (Git LFS)      |
+| `src/six_motor_driver/config/six_motor_calibration.yaml` | Real-robot calibration    |
+| `src/tuwrc_bringup/launch/robot.launch.py`               | Main launch file          |
+| `src/lerobot_gui/lerobot_gui/joint_state_gui.py`         | Browser GUI               |
+| `tools/run`                                              | OS-aware launcher         |
+
+
+
 
 ## Modes and control contract
 
@@ -152,10 +170,14 @@ Both modes use the same actions:
 - Feedback: `/joint_states`
 - Pose IK (optional): MoveIt `/compute_ik`, group `arm`, frames `world` → `tcp`
 
-| Mode | Arm controller | Rail controller |
-|------|----------------|-----------------|
-| view | `tuwrc_mock_hardware` | mock (movable ±0.5 m) |
-| hardware | `six_motor_driver` | `rail_hold` (fixed 0 m) |
+
+| Mode     | Arm controller        | Rail controller         |
+| -------- | --------------------- | ----------------------- |
+| view     | `tuwrc_mock_hardware` | mock (movable ±0.5 m)   |
+| hardware | `six_motor_driver`    | `rail_hold` (fixed 0 m) |
+
+
+
 
 ## Git and GitHub workflow
 
@@ -169,6 +191,7 @@ git clone git@github.com:janbocchino/tuwrc-basil-farm-robotcontrol.git
 cd tuwrc-basil-farm-robotcontrol
 git lfs pull
 ```
+
 
 
 ### Daily work
@@ -200,6 +223,8 @@ Do **not** commit (already in `.gitignore`):
 - `build/`, `install/`, `log/`
 - local IDE settings, `.env`, temporary files
 
+
+
 ### Git LFS
 
 Meshes are large STL files. After cloning on a new machine:
@@ -215,10 +240,11 @@ If RViz shows missing meshes, you probably forgot `git lfs pull`.
 
 - Measured joint limits and zero positions live in `six_motor_calibration.yaml`.
 - Do **not** change calibration or URDF joint limits without a documented physical verification.
-- Keep clear of the arm before hardware moves.
 - Use tiny deltas first.
 - Hardware scripts require `--allow-hardware`.
 - Rail physical motion is disabled until a real rail driver exists.
+
+
 
 ## Deferred / later TODOs
 
@@ -227,17 +253,23 @@ If RViz shows missing meshes, you probably forgot `git lfs pull`.
 - Real rail motor/encoder/homing/E-stop driver
 - Perfect visual seating of the arm on the slider
 
+
+
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| Docker not found | Install/start Docker Desktop |
-| Port 6080/3000 busy | Stop old containers: `docker compose --profile view down` |
-| Missing meshes in RViz | `git lfs pull` |
-| No `/dev/ttyACM*` | Check USB cable; on WSL use `usbipd`; on Linux join `dialout` |
-| Hardware refused in Docker | Expected — use native Ubuntu |
-| Controllers not ready in GUI | Wait for bringup; check terminal logs |
+
+| Problem                       | Fix                                                                         |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| Docker not found              | Install/start Docker Desktop                                                |
+| Port 6080/3000 busy           | Stop old containers: `docker compose --profile view down`                   |
+| Missing meshes in RViz        | `git lfs pull`                                                              |
+| No `/dev/ttyACM*`             | Check USB cable; on WSL use `usbipd`; on Linux join `dialout`               |
+| Hardware refused in Docker    | Expected — use native Ubuntu                                                |
+| Controllers not ready in GUI  | Wait for bringup; check terminal logs                                       |
 | `colcon` / ROS missing on Mac | Use Docker view mode; do not install ROS natively on macOS for this project |
+
+
+
 
 ## License
 

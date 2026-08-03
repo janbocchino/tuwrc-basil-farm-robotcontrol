@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xfce4-terminal \
     tigervnc-standalone-server \
     tigervnc-common \
+    tigervnc-tools \
     novnc \
     python3-websockify \
     dbus-x11 \
@@ -48,7 +49,7 @@ RUN mkdir -p /root/.vnc \
 
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && bash -lc "source /opt/ros/jazzy/setup.bash && colcon build --symlink-install"
+    && bash -lc "source /opt/ros/jazzy/setup.bash && colcon build"
 
 EXPOSE 6080 5901 3000
 CMD ["/usr/local/bin/docker-entrypoint.sh"]

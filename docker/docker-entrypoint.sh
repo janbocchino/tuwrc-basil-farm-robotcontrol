@@ -12,14 +12,19 @@ export DISPLAY=:1
 export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
 export QT_X11_NO_MITSHM=1
 
+# ROS setup scripts reference optional unset vars; disable nounset while sourcing.
+set +u
+# shellcheck disable=SC1091
 source /opt/ros/jazzy/setup.bash
 cd /workspace
-if [[ ! -f /workspace/install/setup.bash ]] || [[ ! -d /workspace/install/tuwrc_bringup ]]; then
-  echo "Building workspace inside container…"
-  colcon build --symlink-install
-fi
+
+# Bind-mounting the host repo hides the image build. Always rebuild into the
+# Docker volumes so source edits and install stay in sync (fast for this repo).
+echo "Building workspace inside container…"
+colcon build
 # shellcheck disable=SC1091
 source /workspace/install/setup.bash
+set -u
 
 MODE="${TUWRC_MODE:-view}"
 echo "READY: noVNC http://localhost:6080/vnc.html (password: ros)"

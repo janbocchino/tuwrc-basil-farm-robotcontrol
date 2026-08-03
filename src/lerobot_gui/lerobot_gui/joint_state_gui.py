@@ -1,6 +1,7 @@
 import argparse
 import json
 import math
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -841,7 +842,12 @@ def moveit_error_message(code):
     return messages.get(code, f"MoveIt IK failed with error code {code}.")
 
 
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    # launch_ros Node appends --ros-args; strip those before argparse.
+    cleaned = rclpy.utilities.remove_ros_args(argv)
+
     parser = argparse.ArgumentParser(description="TUWRC joint monitor + control GUI.")
     parser.add_argument("--port", type=int, default=3000)
     parser.add_argument(
@@ -850,9 +856,9 @@ def main():
         default="view",
         help="view: mock controllers; hardware: real arm + fixed rail",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(cleaned[1:])
 
-    rclpy.init()
+    rclpy.init(args=argv)
     store = JointStateStore()
     node  = JointStateNode(store, mode=args.mode)
 

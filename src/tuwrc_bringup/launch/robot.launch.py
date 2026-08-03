@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, LogInfo, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, LogInfo, OpaqueFunction
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -133,19 +133,10 @@ def launch_setup(context):
 
     if use_gui:
         actions.append(
-            ExecuteProcess(
-                cmd=[
-                    "ros2",
-                    "run",
-                    "lerobot_gui",
-                    "joint_state_gui",
-                    "--ros-args",
-                    "--",
-                    "--port",
-                    gui_port,
-                    "--mode",
-                    mode,
-                ],
+            Node(
+                package="lerobot_gui",
+                executable="joint_state_gui",
+                arguments=["--port", gui_port, "--mode", mode],
                 output="screen",
             )
         )

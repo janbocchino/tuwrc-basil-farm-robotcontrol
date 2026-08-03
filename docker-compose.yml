@@ -6,7 +6,9 @@ services:
     working_dir: /workspace
     volumes:
       - .:/workspace
+      - build_data:/workspace/build
       - install_data:/workspace/install
+      - log_data:/workspace/log
     environment:
       - QT_X11_NO_MITSHM=1
       - LIBGL_ALWAYS_SOFTWARE=1
@@ -19,4 +21,6 @@ services:
     profiles: ["view"]
 
 volumes:
+  build_data:
   install_data:
+  log_data:
