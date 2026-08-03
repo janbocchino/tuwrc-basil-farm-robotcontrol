@@ -1,0 +1,17 @@
+{
+  "name": "tuwrc-basil-farm-robotcontrol",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "robot",
+  "workspaceFolder": "/workspace",
+  "runServices": ["robot"],
+  "forwardPorts": [6080, 3000],
+  "postCreateCommand": "bash -lc 'source /opt/ros/jazzy/setup.bash && colcon build --symlink-install'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-iot.vscode-ros",
+        "ms-python.python"
+      ]
+    }
+  }
+}

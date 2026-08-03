@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot name="so101_rail" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    Full description used by optional Gazebo launches.
+    RViz / hardware MVP loads so101_base.xacro directly.
+  -->
+  <xacro:include filename="$(find lerobot_description)/urdf/so101_base.xacro" />
+  <xacro:include filename="$(find lerobot_description)/urdf/so101_gazebo.xacro" />
+  <xacro:include filename="$(find lerobot_description)/urdf/so101_ros2_control.xacro" />
+</robot>

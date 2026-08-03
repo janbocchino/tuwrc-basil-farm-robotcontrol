@@ -1,0 +1,45 @@
+/**:
+  ros__parameters:
+    servo_ids:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    names:
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+    - '6'
+    lower_limits_steps:
+    - 2534
+    - 3722
+    - 3884
+    - 531
+    - 2364
+    - 3894
+    upper_limits_steps:
+    - 1134
+    - 2042
+    - 1989
+    - 2887
+    - 2040
+    - 1244
+    zero_positions_steps:
+    - 3882
+    - 834
+    - 888
+    - 1709
+    - 154
+    - 4015
+    directions:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    warn_outside_limits: true

@@ -1,0 +1,565 @@
+<?xml version="1.0"?>
+
+<!--
+  This file is based on the SO-ARM100 model from:
+  https://github.com/TheRobotStudio/SO-ARM100
+  and has been modified accordingly.
+-->
+
+<robot name="so101_rail" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+	<!--
+		Rail geometry is provisional until the assembled CAD model is available.
+		All mounting values are arguments so the measured SO-101 chain below never
+		needs to be changed when the rail alignment is corrected.
+	-->
+	<xacro:arg name="rail_lower" default="-0.5" />
+	<xacro:arg name="rail_upper" default="0.5" />
+	<xacro:arg name="rail_velocity" default="1.0" />
+	<xacro:arg name="rail_mount_x" default="-0.03" />
+	<xacro:arg name="rail_mount_y" default="0.0" />
+	<xacro:arg name="rail_mount_z" default="-0.07" />
+	<xacro:arg name="rail_mount_roll" default="0.0" />
+	<xacro:arg name="rail_mount_pitch" default="0.0" />
+	<xacro:arg name="rail_mount_yaw" default="0.0" />
+
+	<!-- Fixed world and provisional X rail. -->
+	<link name="world" />
+
+	<link name="rail_link">
+		<visual>
+			<origin xyz="-0.5 0 -0.085" rpy="1.5708 0 1.5708" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/rail/rail.stl"
+					scale="0.0001 0.0001 0.0001" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<visual>
+			<origin xyz="-0.5 -0.090 -0.085" rpy="1.5708 0 1.5708" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/rail/rail.stl"
+					scale="0.0001 0.0001 0.0001" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<inertial>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<mass value="1.0" />
+			<inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01" />
+		</inertial>
+	</link>
+
+	<joint name="world_to_rail" type="fixed">
+		<parent link="world" />
+		<child link="rail_link" />
+		<origin xyz="0 0 0.085" rpy="0 0 0" />
+	</joint>
+
+	<link name="carriage_link">
+		<visual>
+			<origin xyz="0.070 -0.070 0" rpy="0 3.14159 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/rail/plate.stl"
+					scale="0.0001 0.0001 0.0001" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<inertial>
+			<origin xyz="0 0 0" rpy="0 0 0" />
+			<mass value="0.5" />
+			<inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001" />
+		</inertial>
+	</link>
+
+	<joint name="rail_joint" type="prismatic">
+		<parent link="rail_link" />
+		<child link="carriage_link" />
+		<origin xyz="0 0 0" rpy="0 0 0" />
+		<axis xyz="1 0 0" />
+		<limit effort="50" velocity="$(arg rail_velocity)"
+			lower="$(arg rail_lower)" upper="$(arg rail_upper)" />
+	</joint>
+
+	<transmission name="rail_joint_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="rail_joint">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor_rail">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+
+	<joint name="base_joint" type="fixed">
+		<parent link="carriage_link" />
+		<child link="base" />
+		<origin
+			xyz="$(arg rail_mount_x) $(arg rail_mount_y) $(arg rail_mount_z)"
+			rpy="$(arg rail_mount_roll) $(arg rail_mount_pitch) $(arg rail_mount_yaw)" />
+	</joint>
+
+	<!-- Materials -->
+	<material name="3d_printed">
+		<color rgba="1.0 0.82 0.12 1.0" />
+	</material>
+	<material name="sts3215">
+		<color rgba="0.1 0.1 0.1 1.0" />
+	</material>
+
+	<!-- Link base -->
+	<link name="base">
+		<inertial>
+			<origin xyz="0.020739 0.00204287 0.065966" rpy="0 0 0" />
+			<mass value="0.147" />
+			<inertia ixx="0.000136117" ixy="4.59787e-07" ixz="9.75275e-08" iyy="0.000114686"
+				iyz="-4.97151e-06" izz="0.000130364" />
+		</inertial>
+		<!-- Part base_motor_holder_so101_v1 -->
+		<visual>
+			<origin xyz="0.0206915 0.0221255 0.0300817" rpy="1.5708 -1.23909e-16 2.33147e-15" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/base_motor_holder_so101_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="0.0206915 0.0221255 0.0300817" rpy="1.5708 -1.23909e-16 2.33147e-15" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/base_motor_holder_so101_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part base_so101_v2 -->
+		<visual>
+			<origin xyz="0.0207909 0.0221255 0.0300817" rpy="1.5708 -0 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/base_so101_v2.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="0.0207909 0.0221255 0.0300817" rpy="1.5708 -0 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/base_so101_v2.stl" />
+			</geometry>
+		</collision>
+		<!-- Part sts3215_03a_v1 -->
+		<visual>
+			<origin xyz="0.0207909 -0.0105745 0.0761817" rpy="-2.20282e-15 2.77556e-17 -1.5708" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<collision>
+			<origin xyz="0.0207909 -0.0105745 0.0761817" rpy="-2.20282e-15 2.77556e-17 -1.5708" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part waveshare_mounting_plate_so101_v2 -->
+		<visual>
+			<origin xyz="0.0205915 0.0467435 0.0798817" rpy="1.5708 -1.21716e-14 2.33147e-15" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/waveshare_mounting_plate_so101_v2.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="0.0205915 0.0467435 0.0798817" rpy="1.5708 -1.21716e-14 2.33147e-15" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/waveshare_mounting_plate_so101_v2.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<!-- Link shoulder -->
+	<link name="shoulder">
+		<inertial>
+			<origin xyz="-0.0307604 -1.66727e-05 -0.0252713" rpy="0 0 0" />
+			<mass value="0.100006" />
+			<inertia ixx="8.3759e-05" ixy="7.55525e-08" ixz="-1.16342e-06" iyy="8.10403e-05"
+				iyz="1.54663e-07" izz="2.39783e-05" />
+		</inertial>
+		<!-- Part sts3215_03a_v1_2 -->
+		<visual>
+			<origin xyz="-0.0303992 0.000422241 -0.0417" rpy="1.5708 1.5708 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<collision>
+			<origin xyz="-0.0303992 0.000422241 -0.0417" rpy="1.5708 1.5708 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part motor_holder_so101_base_v1 -->
+		<visual>
+			<origin xyz="-0.0675992 -0.000177759 0.0158499" rpy="1.5708 -1.5708 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/motor_holder_so101_base_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="-0.0675992 -0.000177759 0.0158499" rpy="1.5708 -1.5708 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/motor_holder_so101_base_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part rotation_pitch_so101_v1 -->
+		<visual>
+			<origin xyz="0.0122008 2.22413e-05 0.0464" rpy="-1.5708 -0 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/rotation_pitch_so101_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="0.0122008 2.22413e-05 0.0464" rpy="-1.5708 -0 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/rotation_pitch_so101_v1.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<!-- Link upper_arm -->
+	<link name="upper_arm">
+		<inertial>
+			<origin xyz="-0.0898471 -0.00838224 0.0184089" rpy="0 0 0" />
+			<mass value="0.103" />
+			<inertia ixx="4.08002e-05" ixy="-1.97819e-05" ixz="-4.03016e-08" iyy="0.000147318"
+				iyz="8.97326e-09" izz="0.000142487" />
+		</inertial>
+		<!-- Part sts3215_03a_v1_3 -->
+		<visual>
+			<origin xyz="-0.11257 -0.0155 0.0187" rpy="-3.14159 -6.8695e-16 -1.5708" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<collision>
+			<origin xyz="-0.11257 -0.0155 0.0187" rpy="-3.14159 -6.8695e-16 -1.5708" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part upper_arm_so101_v1 -->
+		<visual>
+			<origin xyz="-0.065085 0.012 0.0182" rpy="3.14159 -9.35612e-32 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/upper_arm_so101_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="-0.065085 0.012 0.0182" rpy="3.14159 -9.35612e-32 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/upper_arm_so101_v1.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<!-- Link lower_arm -->
+	<link name="lower_arm">
+		<inertial>
+			<origin xyz="-0.0980701 0.00324376 0.0182831" rpy="0 0 0" />
+			<mass value="0.104" />
+			<inertia ixx="2.87438e-05" ixy="7.41152e-06" ixz="1.26409e-06" iyy="0.000159844"
+				iyz="-4.90188e-08" izz="0.00014529" />
+		</inertial>
+		<!-- Part under_arm_so101_v1 -->
+		<visual>
+			<origin xyz="-0.0648499 -0.032 0.0182" rpy="-3.14159 -0 3.9443e-31" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/under_arm_so101_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="-0.0648499 -0.032 0.0182" rpy="-3.14159 -0 3.9443e-31" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/under_arm_so101_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part motor_holder_so101_wrist_v1 -->
+		<visual>
+			<origin xyz="-0.0648499 -0.032 0.018" rpy="-3.14159 4.73317e-30 7.88861e-31" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/motor_holder_so101_wrist_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="-0.0648499 -0.032 0.018" rpy="-3.14159 4.73317e-30 7.88861e-31" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/motor_holder_so101_wrist_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part sts3215_03a_v1_4 -->
+		<visual>
+			<origin xyz="-0.1224 0.0052 0.0187" rpy="-3.14159 -3.58047e-15 -3.14159" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<collision>
+			<origin xyz="-0.1224 0.0052 0.0187" rpy="-3.14159 -3.58047e-15 -3.14159" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<!-- Link wrist -->
+	<link name="wrist">
+		<inertial>
+			<origin xyz="-0.000103312 -0.0386143 0.0281156" rpy="0 0 0" />
+			<mass value="0.079" />
+			<inertia ixx="3.68263e-05" ixy="1.7893e-08" ixz="-5.28128e-08" iyy="2.5391e-05"
+				iyz="3.6412e-06" izz="2.1e-05" />
+		</inertial>
+		<!-- Part sts3215_03a_no_horn_v1 -->
+		<visual>
+			<origin xyz="5.55112e-17 -0.0424 0.0306" rpy="1.5708 1.5708 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/sts3215_03a_no_horn_v1.stl" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<collision>
+			<origin xyz="5.55112e-17 -0.0424 0.0306" rpy="1.5708 1.5708 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/sts3215_03a_no_horn_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part wrist_roll_pitch_so101_v2 -->
+		<visual>
+			<origin xyz="0 -0.028 0.0181" rpy="-1.5708 -1.5708 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/wrist_roll_pitch_so101_v2.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="0 -0.028 0.0181" rpy="-1.5708 -1.5708 0" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/wrist_roll_pitch_so101_v2.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<!-- Link gripper -->
+	<link name="gripper">
+		<inertial>
+			<origin xyz="0.000213627 0.000245138 -0.025187" rpy="0 0 0" />
+			<mass value="0.087" />
+			<inertia ixx="2.75087e-05" ixy="-3.35241e-07" ixz="-5.7352e-06" iyy="4.33657e-05"
+				iyz="-5.17847e-08" izz="3.45059e-05" />
+		</inertial>
+		<!-- Part sts3215_03a_v1_5 -->
+		<visual>
+			<origin xyz="0.0077 0.0001 -0.0234" rpy="-1.5708 -5.55112e-17 -1.38213e-14" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<collision>
+			<origin xyz="0.0077 0.0001 -0.0234" rpy="-1.5708 -5.55112e-17 -1.38213e-14" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/sts3215_03a_v1.stl" />
+			</geometry>
+		</collision>
+		<!-- Part wrist_roll_follower_so101_v1 -->
+		<visual>
+			<origin xyz="5.55112e-17 -0.000218214 0.000949706"
+				rpy="-3.14159 -5.55112e-17 -9.17912e-24" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/wrist_roll_follower_so101_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="5.55112e-17 -0.000218214 0.000949706"
+				rpy="-3.14159 -5.55112e-17 -9.17912e-24" />
+			<geometry>
+				<mesh
+					filename="package://lerobot_description/meshes/so101/wrist_roll_follower_so101_v1.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<!-- Link jaw -->
+	<link name="jaw">
+		<inertial>
+			<origin xyz="-0.00157495 -0.0300244 0.0192755" rpy="0 0 0" />
+			<mass value="0.012" />
+			<inertia ixx="6.61427e-06" ixy="-3.19807e-07" ixz="-5.90717e-09" iyy="1.89032e-06"
+				iyz="-1.09945e-07" izz="5.28738e-06" />
+		</inertial>
+		<!-- Part moving_jaw_so101_v1 -->
+		<visual>
+			<origin xyz="-5.55112e-17 -1.94746e-17 0.0189" rpy="9.53145e-17 -4.66093e-24 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/moving_jaw_so101_v1.stl" />
+			</geometry>
+			<material name="3d_printed" />
+		</visual>
+		<collision>
+			<origin xyz="-5.55112e-17 -1.94746e-17 0.0189" rpy="9.53145e-17 -4.66093e-24 0" />
+			<geometry>
+				<mesh filename="package://lerobot_description/meshes/so101/moving_jaw_so101_v1.stl" />
+			</geometry>
+		</collision>
+	</link>
+
+	<!-- Tool center point: Z is the approach direction at the grasp point. -->
+	<link name="tcp" />
+
+	<joint name="gripper_to_tcp" type="fixed">
+		<parent link="gripper" />
+		<child link="tcp" />
+		<origin xyz="0 0 -0.090" rpy="3.14159 0 1.5708" />
+	</joint>
+
+	<!-- Joint from gripper to jaw -->
+	<joint name="6" type="revolute">
+		<origin xyz="0.0202 0.0188 -0.0234" rpy="1.5708 -5.14108e-17 -1.38655e-14" />
+		<parent link="gripper" />
+		<child link="jaw" />
+		<axis xyz="0 0 1" />
+		<limit effort="4.0" velocity="0.8" lower="-0.18561168" upper="2.03252454" />
+	</joint>
+
+	<transmission name="6_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="6">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor6">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+
+	<!-- Joint from wrist to gripper -->
+	<joint name="5" type="revolute">
+		<origin xyz="0 -0.0611 0.0181" rpy="1.5708 -9.38083e-08 3.14159" />
+		<parent link="wrist" />
+		<child link="gripper" />
+		<axis xyz="0 0 1" />
+		<limit effort="4.0" velocity="0.8" lower="-2.89308777" upper="2.89308777" />
+	</joint>
+
+	<transmission name="5_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="5">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor5">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+
+	<!-- Joint from lower_arm to wrist -->
+	<joint name="4" type="revolute">
+		<origin xyz="-0.1349 0.0052 1.65232e-16" rpy="3.2474e-15 2.86219e-15 -1.5708" />
+		<parent link="lower_arm" />
+		<child link="wrist" />
+		<axis xyz="0 0 1" />
+		<limit effort="4.0" velocity="0.8" lower="-1.80702937" upper="1.80702937" />
+	</joint>
+
+	<transmission name="4_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="4">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor4">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+
+	<!-- Joint from upper_arm to lower_arm -->
+	<joint name="3" type="revolute">
+		<origin xyz="-0.11257 -0.028 2.46331e-16" rpy="-1.22818e-15 5.75928e-16 1.5708" />
+		<parent link="upper_arm" />
+		<child link="lower_arm" />
+		<axis xyz="0 0 1" />
+		<limit effort="4.0" velocity="0.8" lower="-1.68737887" upper="1.68891285" />
+	</joint>
+
+	<transmission name="3_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="3">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor3">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+
+	<!-- Joint from shoulder to upper_arm -->
+	<joint name="2" type="revolute">
+		<origin xyz="-0.0303992 -0.0182778 -0.0542" rpy="-1.5708 -1.5708 0" />
+		<parent link="shoulder" />
+		<child link="upper_arm" />
+		<axis xyz="0 0 1" />
+		<limit effort="4.0" velocity="0.8" lower="-1.85304879" upper="1.85304879" />
+	</joint>
+
+	<transmission name="2_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="2">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor2">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+
+	<!-- Joint from base to shoulder -->
+	<joint name="1" type="revolute">
+		<origin xyz="0.0207909 -0.0230745 0.0948817" rpy="-3.14159 6.03684e-16 1.5708" />
+		<parent link="base" />
+		<child link="shoulder" />
+		<axis xyz="0 0 1" />
+		<limit effort="4.0" velocity="0.8" lower="-2.06780610" upper="2.06780610" />
+	</joint>
+
+	<transmission name="1_trans">
+		<type>transmission_interface/SimpleTransmission</type>
+		<joint name="1">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+		</joint>
+		<actuator name="motor1">
+			<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+			<mechanicalReduction>1</mechanicalReduction>
+		</actuator>
+	</transmission>
+</robot>

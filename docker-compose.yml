@@ -1,0 +1,22 @@
+services:
+  robot:
+    build: .
+    image: tuwrc-basil-farm-robotcontrol:jazzy
+    container_name: tuwrc_robotcontrol
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - install_data:/workspace/install
+    environment:
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_SOFTWARE=1
+      - TUWRC_MODE=${TUWRC_MODE:-view}
+    ports:
+      - "6080:6080"
+      - "5901:5901"
+      - "3000:3000"
+    shm_size: "2gb"
+    profiles: ["view"]
+
+volumes:
+  install_data:

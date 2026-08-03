@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>tuwrc_bringup</name>
+  <version>0.1.0</version>
+  <description>Unified view/hardware bringup for the TUWRC basil-farm robot.</description>
+  <maintainer email="team@tuwrc.local">TUWRC Team</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>lerobot_description</exec_depend>
+  <exec_depend>lerobot_gui</exec_depend>
+  <exec_depend>six_motor_driver</exec_depend>
+  <exec_depend>six_motor_moveit_config</exec_depend>
+  <exec_depend>tuwrc_mock_hardware</exec_depend>
+  <exec_depend>moveit_ros_move_group</exec_depend>
+  <exec_depend>moveit_configs_utils</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

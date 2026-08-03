@@ -1,0 +1,29 @@
+# Colcon / ROS build artifacts
+build/
+install/
+log/
+.colcon/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local overrides and secrets
+.env
+.env.*
+*.local.yaml
+*.local.yml
+
+# Temporary / editor
+*.tmp
+*~

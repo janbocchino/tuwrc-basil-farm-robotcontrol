@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Cross-platform launcher for tuwrc-basil-farm-robotcontrol.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+MODE="view"
+RUNTIME=""
+PORT="/dev/ttyACM0"
+USE_RVIZ="true"
+USE_MOVEIT="true"
+USE_GUI="true"
+
+usage() {
+  cat <<'EOF'
+Usage: ./tools/run [--mode view|hardware] [--runtime native|docker] [options]
+
+Options:
+  --mode view|hardware     view = mock robot in RViz; hardware = real arm (Linux)
+  --runtime native|docker  force runtime (default: auto-detect)
+  --port PATH              serial port for hardware mode (default: /dev/ttyACM0)
+  --no-rviz                do not start RViz
+  --no-moveit              do not start MoveIt
+  --no-gui                 do not start the browser GUI
+  -h, --help               show this help
+
+Auto-detect:
+  macOS / WSL            → Docker view mode
+  native Linux           → native ROS; hardware allowed
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --mode) MODE="$2"; shift 2 ;;
+    --runtime) RUNTIME="$2"; shift 2 ;;
+    --port) PORT="$2"; shift 2 ;;
+    --no-rviz) USE_RVIZ="false"; shift ;;
+    --no-moveit) USE_MOVEIT="false"; shift ;;
+    --no-gui) USE_GUI="false"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+if [[ "$MODE" != "view" && "$MODE" != "hardware" ]]; then
+  echo "mode must be view or hardware" >&2
+  exit 1
+fi
+
+detect_os() {
+  local uname_s
+  uname_s="$(uname -s)"
+  if [[ -n "${WSL_DISTRO_NAME:-}" ]] || grep -qi microsoft /proc/version 2>/dev/null; then
+    echo "wsl"
+  elif [[ "$uname_s" == "Darwin" ]]; then
+    echo "macos"
+  elif [[ "$uname_s" == "Linux" ]]; then
+    echo "linux"
+  else
+    echo "unknown"
+  fi
+}
+
+OS_KIND="$(detect_os)"
+if [[ -z "$RUNTIME" ]]; then
+  case "$OS_KIND" in
+    macos|wsl) RUNTIME="docker" ;;
+    linux) RUNTIME="native" ;;
+    *) RUNTIME="docker" ;;
+  esac
+fi
+
+if [[ "$MODE" == "hardware" && "$RUNTIME" == "docker" ]]; then
+  echo "Hardware mode is not supported inside Docker Desktop." >&2
+  echo "Use native Ubuntu (or experimental WSL + usbipd) with --runtime native." >&2
+  exit 1
+fi
+
+if [[ "$MODE" == "hardware" && "$OS_KIND" == "macos" ]]; then
+  echo "Hardware mode is not supported on macOS." >&2
+  exit 1
+fi
+
+echo "Detected OS: $OS_KIND"
+echo "Runtime: $RUNTIME"
+echo "Mode: $MODE"
+
+run_native() {
+  if [[ ! -f /opt/ros/jazzy/setup.bash ]]; then
+    echo "ROS 2 Jazzy is not installed at /opt/ros/jazzy." >&2
+    echo "Install ROS 2 Jazzy on Ubuntu 24.04, or use --runtime docker for view mode." >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1091
+  source /opt/ros/jazzy/setup.bash
+  if [[ ! -f "$ROOT/install/setup.bash" ]]; then
+    echo "Building workspace…"
+    colcon build --symlink-install
+  fi
+  # shellcheck disable=SC1091
+  source "$ROOT/install/setup.bash"
+  exec ros2 launch tuwrc_bringup robot.launch.py \
+    mode:="$MODE" \
+    use_rviz:="$USE_RVIZ" \
+    use_moveit:="$USE_MOVEIT" \
+    use_gui:="$USE_GUI" \
+    port:="$PORT"
+}
+
+run_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is required for this runtime. Install Docker Desktop / Docker Engine." >&2
+    exit 1
+  fi
+  export TUWRC_MODE="$MODE"
+  docker compose --profile view up --build
+}
+
+case "$RUNTIME" in
+  native) run_native ;;
+  docker) run_docker ;;
+  *) echo "runtime must be native or docker" >&2; exit 1 ;;
+esac
