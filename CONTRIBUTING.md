@@ -41,7 +41,7 @@ Rail mount offsets (`rail_mount_*` args) may be adjusted for visualization, but 
 
 ## What belongs in the repository
 
-Push the **entire** repository layout (README, Docker, tools, CI, `src/`, tests).  
+Push the **entire** repository layout (README, Docker, tools, `src/`, tests).  
 Do **not** push only `src/`.  
 Do **not** commit `build/`, `install/`, or `log/`.
 

@@ -122,7 +122,6 @@ tuwrc-basil-farm-robotcontrol/
 ├── docker/                   ← container entrypoint
 ├── tools/run                 ← cross-platform start script
 ├── tests/                    ← offline contract tests
-├── .github/workflows/        ← CI
 └── src/
     ├── lerobot_description/  ← URDF/xacro, meshes, RViz display config
     ├── six_motor_driver/     ← real ST3215 arm driver + calibration
@@ -160,7 +159,7 @@ Both modes use the same actions:
 
 ## Git and GitHub workflow
 
-**Push the whole repository**, not only `src/`. Docker files, `tools/`, CI, README, and manifests are required for teammates on other OSes.
+**Push the whole repository**, not only `src/`. Docker files, `tools/`, README, and manifests are required for teammates on other OSes.
 
 ### Clone
 
@@ -194,7 +193,7 @@ Commit:
 - source under `src/`
 - launch/config/calibration
 - meshes (via Git LFS)
-- tests, docs, Docker, CI, `tools/`
+- tests, docs, Docker, `tools/`
 
 Do **not** commit (already in `.gitignore`):
 
