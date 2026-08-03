@@ -1,44 +1,26 @@
-# MoveIt-Konfiguration für den SO-101
+# MoveIt configuration for the rail-mounted SO-101
 
-Dieses Paket verbindet MoveIt mit dem lokalen SO-101-Modell und dem echten
-sechs-Motor-Treiber.
-
-Ausführliches Tutorial:
-
-```text
-~/ros2_ws/src/six_motor_system/MOVEIT_TUTORIAL.md
-```
-
-## Start
+Prefer the unified bringup from the repository root:
 
 ```bash
-cd ~/ros2_ws
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-export PORT=/dev/ttyACM1
-
-ros2 launch six_motor_moveit_config moveit.launch.py \
-  port:=$PORT
+./tools/run --mode view
+# or on native Ubuntu with the real arm:
+./tools/run --mode hardware --runtime native --port /dev/ttyACM0
 ```
 
-Den Port vorher mit `ls /dev/ttyACM* /dev/ttyUSB* 2>/dev/null` prüfen.
+Direct MoveIt launch (legacy helper):
 
-## Wichtigste Dateien
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+ros2 launch six_motor_moveit_config moveit.launch.py port:=/dev/ttyACM0
+```
 
-- `config/so101.srdf`: MoveIt-Gruppe `so101_arm` und Named States.
-- `config/joint_limits.yaml`: MoveIt-Grenzen aus der ST3215-Kalibrierung.
-- `config/controllers_real.yaml`: Verbindung zu
-  `/six_motor_controller/follow_joint_trajectory`.
-- `launch/moveit.launch.py`: startet Robotermodell, optional Hardwaretreiber,
-  `move_group` und RViz.
+## Important files
 
-## RViz
+- `config/so101.srdf`: planning group `arm` (`rail_link` → `tcp`) plus gripper
+- `config/joint_limits.yaml`: measured arm limits + provisional rail limits
+- `config/controllers.yaml` / `controllers_real.yaml`: action controller wiring
+- `launch/moveit.launch.py`: model, optional hardware driver, `move_group`, RViz
 
-Im MotionPlanning-Panel:
-
-1. `Planning Group`: `so101_arm`
-2. `Goal State`: `small_test` oder `zero`
-3. `Plan`
-4. `Execute`
-
-Für echte Hardware am Anfang lieber kleine Bewegungen testen.
+See the root [README.md](../../README.md) for OS-specific instructions.

@@ -160,7 +160,7 @@ class ThreeMotorDriver(Node):
                 raise RuntimeError(
                     f"Servo ID {servo_id} steht bei {zero} nahe einer Grenze. "
                     "Richtung Mitte bewegen: "
-                    f"python3 /home/max/motor_control.py --port {self.port} "
+                    f"ros2 run six_motor_driver configure_servo_id --ros-args -- --port {self.port} "
                     f"--id {servo_id} --jog {direction}"
                 )
             self.lower_limits.append(lower)

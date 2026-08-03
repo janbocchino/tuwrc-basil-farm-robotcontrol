@@ -12,17 +12,6 @@ from .cyclic_calibration import CyclicJointCalibration
 
 
 def default_config_path() -> Path:
-    source_path = (
-        Path.home()
-        / "ros2_ws"
-        / "src"
-        / "six_motor_system"
-        / "six_motor_driver"
-        / "config"
-        / "six_motor_calibration.yaml"
-    )
-    if source_path.is_file():
-        return source_path
     from ament_index_python.packages import get_package_share_directory
 
     return (

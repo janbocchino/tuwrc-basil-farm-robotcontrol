@@ -24,12 +24,10 @@ def find_port(configured: str) -> str:
 
 
 def default_config() -> Path:
+    from ament_index_python.packages import get_package_share_directory
+
     return (
-        Path.home()
-        / "ros2_ws"
-        / "src"
-        / "six_motor_system"
-        / "six_motor_driver"
+        Path(get_package_share_directory("six_motor_driver"))
         / "config"
         / "six_motor_calibration.yaml"
     )
