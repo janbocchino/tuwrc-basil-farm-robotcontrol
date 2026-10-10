@@ -26,7 +26,7 @@ ARM_JOINTS = ["1", "2", "3", "4", "5", "6"]
 RAIL_JOINT = "rail_joint"
 
 JOINT_LIMITS = {
-    "rail_joint": (-0.5, 0.5),
+    "rail_joint": (0.0, 0.715),  # 0 = left end (lm_left)
     "1": (-2.06780610, 2.06780610),
     "2": (-1.85304879, 1.85304879),
     "3": (-1.68737887, 1.68891285),
@@ -208,8 +208,8 @@ def main(argv=None):
     if args.duration_scale <= 0.0:
         print("--duration-scale must be > 0.", file=sys.stderr)
         return 2
-    if abs(args.rail_m) > 0.5:
-        print("--rail-m must be within ±0.5 m.", file=sys.stderr)
+    if not JOINT_LIMITS[RAIL_JOINT][0] <= args.rail_m <= JOINT_LIMITS[RAIL_JOINT][1]:
+        print("--rail-m must be within 0–0.715 m.", file=sys.stderr)
         return 2
     if args.move_rail and args.hardware:
         print(

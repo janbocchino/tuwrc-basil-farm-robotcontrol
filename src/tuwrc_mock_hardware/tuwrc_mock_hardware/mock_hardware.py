@@ -21,9 +21,10 @@ ARM_JOINTS = ["1", "2", "3", "4", "5", "6"]
 RAIL_JOINTS = ["rail_joint"]
 ALL_JOINTS = RAIL_JOINTS + ARM_JOINTS
 
-# Measured URDF limits from Max's so101_base.xacro (+ provisional rail).
+# Measured URDF limits from Max's so101_base.xacro (+ measured 71.5 cm rail,
+# 0 = left end).
 JOINT_LIMITS = {
-    "rail_joint": (-0.5, 0.5),
+    "rail_joint": (0.0, 0.715),
     "1": (-2.06780610, 2.06780610),
     "2": (-1.85304879, 1.85304879),
     "3": (-1.68737887, 1.68891285),

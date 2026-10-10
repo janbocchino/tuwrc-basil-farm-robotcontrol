@@ -9,20 +9,26 @@
 	<robot name="so101_rail" xmlns:xacro="http://www.ros.org/wiki/xacro">
 		<xacro:include filename="$(find lerobot_description)/urdf/gemini2_camera.xacro" />
 
-		<!--
-			Rail geometry is provisional until the assembled CAD model is available.
-			All mounting values are arguments so the measured SO-101 chain below never
-			needs to be changed when the rail alignment is corrected.
-		-->
-		<xacro:arg name="rail_lower" default="-0.5" />
-		<xacro:arg name="rail_upper" default="0.5" />
-		<xacro:arg name="rail_velocity" default="1.0" />
-		<xacro:arg name="rail_mount_x" default="-0.03" />
-		<xacro:arg name="rail_mount_y" default="0.0" />
-		<xacro:arg name="rail_mount_z" default="-0.07" />
-		<xacro:arg name="rail_mount_roll" default="0.0" />
-		<xacro:arg name="rail_mount_pitch" default="0.0" />
-		<xacro:arg name="rail_mount_yaw" default="0.0" />
+	<!--
+		Rail geometry is provisional until the assembled CAD model is available.
+		All mounting values are arguments so the measured SO-101 chain below never
+		needs to be changed when the rail alignment is corrected.
+	-->
+	<!--
+		rail_joint = 0 is the left end (lm_left switch), increasing towards
+		lm_right. Measured travel between the switches: 71.5 cm. The travel is
+		centred on the 1 m rail mesh, so 0 sits at world x = -0.3575.
+	-->
+	<xacro:arg name="rail_lower" default="0.0" />
+	<xacro:arg name="rail_upper" default="0.715" />
+	<xacro:arg name="rail_zero_x" default="-0.3575" />
+	<xacro:arg name="rail_velocity" default="1.0" />
+	<xacro:arg name="rail_mount_x" default="-0.03" />
+	<xacro:arg name="rail_mount_y" default="0.0" />
+	<xacro:arg name="rail_mount_z" default="-0.07" />
+	<xacro:arg name="rail_mount_roll" default="0.0" />
+	<xacro:arg name="rail_mount_pitch" default="0.0" />
+	<xacro:arg name="rail_mount_yaw" default="0.0" />
 
 		<!--
 			PROVISIONAL Gemini 2 mount transform. Replace these zero placeholders
@@ -85,14 +91,14 @@
 			</inertial>
 		</link>
 
-		<joint name="rail_joint" type="prismatic">
-			<parent link="rail_link" />
-			<child link="carriage_link" />
-			<origin xyz="0 0 0" rpy="0 0 0" />
-			<axis xyz="1 0 0" />
-			<limit effort="50" velocity="$(arg rail_velocity)"
-				lower="$(arg rail_lower)" upper="$(arg rail_upper)" />
-		</joint>
+	<joint name="rail_joint" type="prismatic">
+		<parent link="rail_link" />
+		<child link="carriage_link" />
+		<origin xyz="$(arg rail_zero_x) 0 0" rpy="0 0 0" />
+		<axis xyz="1 0 0" />
+		<limit effort="50" velocity="$(arg rail_velocity)"
+			lower="$(arg rail_lower)" upper="$(arg rail_upper)" />
+	</joint>
 
 		<transmission name="rail_joint_trans">
 			<type>transmission_interface/SimpleTransmission</type>
