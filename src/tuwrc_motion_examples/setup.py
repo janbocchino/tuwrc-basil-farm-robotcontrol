@@ -20,6 +20,9 @@ setup(
         "console_scripts": [
             "small_arm_motion = tuwrc_motion_examples.small_arm_motion:main",
             "leaf_pick_imitation = tuwrc_motion_examples.leaf_pick_imitation:main",
+            "rail_reach_grip = tuwrc_motion_examples.rail_reach_grip:main",
+            "arm_reach_grip = tuwrc_motion_examples.arm_reach_grip:main",
+            "go_home = tuwrc_motion_examples.go_home:main",
         ],
     },
 )

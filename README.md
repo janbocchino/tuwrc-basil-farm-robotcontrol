@@ -1,5 +1,7 @@
 # tuwrc-basil-farm-robotcontrol
 
+home position 1: 0.0; 2, -1.2;3 
+
 GitHub: [https://github.com/janbocchino/tuwrc-basil-farm-robotcontrol](https://github.com/janbocchino/tuwrc-basil-farm-robotcontrol)
 
 One shared ROS 2 project for the TUWRC basil-farm robot: Max’s measured SO-101 arm on the prismatic X-rail, with RViz, MoveIt, a browser GUI, mock view mode, and real arm hardware support on Linux.
@@ -7,13 +9,13 @@ One shared ROS 2 project for the TUWRC basil-farm robot: Max’s measured SO-101
 | Mode | What you get | Where it runs |
 | --- | --- | --- |
 | **view** | Simulated joint motion in RViz and the browser GUI | macOS, Windows/WSL, Linux |
-| **hardware** | Real six-servo arm over USB. Rail held at 0 m | Native Ubuntu 24.04 |
+| **hardware** | Real six-servo arm over USB, rail stepper via Arduino | Native Ubuntu 24.04 |
 
 Gazebo is not part of the MVP. The physical rail motor is not driven yet.
 
 ## View mode
 
-View mode runs a mock arm and a movable rail (±0.5 m). On macOS and Windows it runs in Docker. On Ubuntu you can use Docker or a native ROS 2 install.
+View mode runs a mock arm and a movable rail (0–71.5 cm, 0 = left end). On macOS and Windows it runs in Docker. On Ubuntu you can use Docker or a native ROS 2 install.
 
 ### Shared setup
 
@@ -119,13 +121,17 @@ Scripted motion, from a second terminal. `./tools/example` sets up the Docker or
 ./tools/example small_arm_motion --return-home
 ./tools/example leaf_pick_imitation --move-rail --return-home
 ./tools/example leaf_pick_imitation --scale 0.5 --return-home
+./tools/example rail_reach_grip --rail-m 0.2 --release --return-home
+./tools/example arm_reach_grip --release --return-home
 ```
+
+`rail_reach_grip` drives the rail to `--rail-m` (relative to the rail home), then reaches forward and closes the gripper. On the real robot add `--hardware --allow-hardware`.
 
 `leaf_pick_imitation` is a jaw open/close snip gesture. `--move-rail` works in view mode only.
 
 ## Hardware mode
 
-Hardware mode runs on the Ubuntu computer that has the arm plugged in. It drives the six servos over USB and holds the rail at 0 m. Docker refuses this mode.
+Hardware mode runs on the Ubuntu computer that has the arm plugged in. It drives the six servos over USB and the rail stepper through the Arduino. Docker refuses this mode.
 
 ### One-time setup
 
@@ -158,15 +164,33 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-### Connect the arm
+### Connect the arm and rail
 
-Plug the arm in with a data USB cable, then see which port appeared:
+Plug the arm (servo board) and the rail Arduino in with data USB cables, then list the serial devices:
 
 ```bash
-ls /dev/ttyACM* /dev/ttyUSB*
+ls -l /dev/serial/by-id/
 ```
 
-The usual port is `/dev/ttyACM0`. Pass a different path with `--port` if the name differs.
+Example output:
+
+```text
+usb-1a86_USB_Single_Serial_5AE7043894-if00 -> ../../ttyACM0    ← arm
+usb-1a86_USB2.0-Ser_-if00-port0 -> ../../ttyUSB0               ← rail Arduino
+```
+
+The arm usually shows up as `/dev/ttyACM*` and the rail Arduino as `/dev/ttyUSB*`. If you are unsure which is which, unplug one device, run the command again, and see which entry disappeared. `ls /dev/ttyACM* /dev/ttyUSB*` gives the short list without names.
+
+The `ttyACM0` / `ttyUSB0` numbers can change after re-plugging or a reboot. The `/dev/serial/by-id/...` paths stay the same, so prefer those.
+
+Set the ports when starting bringup:
+
+| Device | Flag | Default |
+| --- | --- | --- |
+| Arm | `--port` | `/dev/ttyACM0` |
+| Rail Arduino | `--rail-port` | `/dev/ttyUSB1` |
+
+If the rail port is wrong, the rail driver exits with a serial error. The arm still works, but the rail does not move.
 
 Keep people and objects clear of the arm before the next step.
 
@@ -177,10 +201,63 @@ Leave this terminal running:
 ```bash
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
-./tools/run --mode hardware --runtime native --port /dev/ttyACM0
+./tools/run --mode hardware --runtime native \
+  --port /dev/ttyACM0 \
+  --rail-port /dev/ttyUSB0
+```
+
+Or with the stable paths:
+
+```bash
+./tools/run --mode hardware --runtime native \
+  --port /dev/serial/by-id/usb-1a86_USB_Single_Serial_5AE7043894-if00 \
+  --rail-port /dev/serial/by-id/usb-1a86_USB2.0-Ser_-if00-port0
 ```
 
 RViz opens as a normal Linux window. The GUI is at [http://localhost:3000](http://localhost:3000). Wait until the status says the controllers are ready.
+
+### Calibrate the rail
+
+Run the rail calibration **every time you start the setup** (every new bringup). The Arduino forgets the rail position whenever it reconnects, and `rail_driver` rejects rail moves until calibration succeeded. From a second terminal:
+
+```bash
+ros2 service call /tuwrc_rail_driver/calibrate std_srvs/srv/Trigger
+```
+
+The rail then:
+
+1. moves left until `lm_left` (D5) closes. That point is home, 0 cm.
+2. moves right until `lm_right` (D4) closes. The steps in between are the rail length.
+3. moves to the middle of that length.
+4. moves back to 0 cm.
+
+The service answers with the measured length, e.g. `Rail calibrated: length 80.0 cm (80000 steps), now at 0 cm (lm_left)`. If it answers `Calibration failed: wrong direction …`, swap `DIR_LEFT` and `DIR_RIGHT` in `firmware/rail_stepper/rail_stepper.ino` and upload again.
+
+After calibration, rail positions are measured from the left end, increasing to the right. The measured travel is **71.5 cm**. This value is set in `rail_upper` in `so101_base.xacro`, `joint_limits.yaml`, the GUI, the mock and the example scripts. If the rail changes, update all of them, plus `expected_length_m` in `rail_driver`. The driver warns when calibration measures more than 1 cm off.
+
+| Topic | Content |
+| --- | --- |
+| `/rail/position_cm` | Current position in cm (`std_msgs/Float64`, 50 Hz) |
+| `/rail/lm_left`, `/rail/lm_right` | Limit switches, `true` = closed (`std_msgs/Bool`, 50 Hz) |
+| `/joint_states` (`rail_joint`) | Same position in metres |
+
+The Arduino stops the motor itself whenever the switch in the direction of travel closes. The firmware lives in `firmware/rail_stepper/rail_stepper.ino` (Arduino Uno, 115200 baud). Upload it with the Arduino IDE after closing the Serial Monitor and stopping bringup.
+
+### Go home first
+
+After every bringup, move the arm to the saved home position before running anything else. From a second terminal:
+
+```bash
+./tools/example go_home --hardware --allow-hardware
+```
+
+The home pose lives in `HOME_ARM` at the top of `src/tuwrc_motion_examples/tuwrc_motion_examples/go_home.py`. It was read from the real arm via `/joint_states`. To change it, move the arm to the new pose, read the angles, and paste them in:
+
+```bash
+ros2 topic echo --once --field position /joint_states
+```
+
+Re-measure home after changing `six_motor_calibration.yaml`. The rail home (`HOME_RAIL_M`) is prepared but commented out. Rail calibration already ends at 0 cm.
 
 ### First movements
 
@@ -196,7 +273,7 @@ Then, from a second terminal, with bringup still running:
 ```bash
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
-./tools/example small_arm_motion --hardware --allow-hardware --return-home
+./tools/example arm_reach_grip --hardware --allow-hardware 
 ```
 
 That nudges joints 1–4 and 6 by small amounts (about 0.08–0.15 rad) and returns to the start pose. The script refuses to move the real arm without `--allow-hardware`.
@@ -215,7 +292,7 @@ After that looks right, the jaw open/close gesture:
 ./tools/example leaf_pick_imitation --hardware --allow-hardware --scale 0.5 --return-home
 ```
 
-Leave `--move-rail` off on the real robot. The rail stays fixed at 0 m until a rail driver exists.
+`leaf_pick_imitation` still refuses `--move-rail` on the real robot. Use `rail_reach_grip` for rail moves on hardware, after calibrating the rail.
 
 ### Calibration and safety
 
@@ -223,6 +300,15 @@ Leave `--move-rail` off on the real robot. The rail stays fixed at 0 m until a r
 - Change calibration or URDF joint limits only after a documented physical check. See [CONTRIBUTING.md](CONTRIBUTING.md).
 - Use tiny deltas first.
 - Hardware scripts require `--allow-hardware`.
+
+### Things to know (rail, 2026-10-10)
+
+- **Restart bringup after pulling.** RViz, MoveIt and the GUI only read the rail limits (0–71.5 cm) at startup.
+- **World coordinates of the arm shifted.** `rail_joint = 0` is now the left end, at world x = −0.3575 m (`rail_zero_x` in `so101_base.xacro`). At `rail_joint = 0` the arm stands about 36 cm left of where the old model put it. Saved IK and pose targets in world coordinates point somewhere else now.
+- **RViz direction is assumed.** The model places `lm_left` on the −x side. If the RViz arm moves the opposite way to the real carriage, flip the rail axis in the URDF.
+- **Motor direction is unverified.** If calibration reports `wrong direction`, swap `DIR_LEFT`/`DIR_RIGHT` in the firmware.
+- **Firmware and driver must match.** `rail_driver` now talks 115200 baud and the `ST …` status protocol. After pulling, upload `firmware/rail_stepper/rail_stepper.ino`. Close the Serial Monitor first, and retry once if the upload fails mid-flash.
+- **Known failing test.** `tests/test_model_contract.py` fails with `SRDF arm chain must be rail_link → tcp`. The SRDF was changed to `world → tcp` in commit `170af5b` so MoveIt plans with the rail, and the test was not updated. This is unrelated to the rail changes.
 
 ## Depth camera
 
@@ -300,7 +386,7 @@ Both modes use the same actions:
 
 | Mode | Arm controller | Rail controller |
 | --- | --- | --- |
-| view | `tuwrc_mock_hardware` | mock (movable ±0.5 m) |
+| view | `tuwrc_mock_hardware` | mock (movable 0–71.5 cm) |
 | hardware | `six_motor_driver` | `rail_driver` (real stepper via Arduino) |
 
 ## Repository map

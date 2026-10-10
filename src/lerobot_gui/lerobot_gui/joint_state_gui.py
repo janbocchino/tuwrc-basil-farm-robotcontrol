@@ -257,7 +257,7 @@ HTML_PAGE = """<!doctype html>
     const JOINT_ORDER  = ["rail_joint", "1", "2", "3", "4", "5", "6"];
     const LINEAR_JOINTS = new Set(["rail_joint"]);   // prismatic, values in meters
     const JOINT_LIMITS = {
-      "rail_joint": [-0.5, 0.5],
+      "rail_joint": [0.0, 0.715],
       "1": [-118.48, 118.48], "2": [-106.17, 106.17], "3": [-96.68, 96.77],
       "4": [-103.53, 103.53], "5": [-165.76, 165.76], "6": [-10.64, 116.45],
     };

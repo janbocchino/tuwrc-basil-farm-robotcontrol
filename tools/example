@@ -34,9 +34,11 @@ fi
 
 if [[ -f /opt/ros/jazzy/setup.bash && -f "$ROOT/install/setup.bash" ]]; then
   # shellcheck disable=SC1091
+  set +u
   source /opt/ros/jazzy/setup.bash
   # shellcheck disable=SC1091
   source "$ROOT/install/setup.bash"
+  set -u
   exec "${ros_cmd[@]}"
 fi
 
