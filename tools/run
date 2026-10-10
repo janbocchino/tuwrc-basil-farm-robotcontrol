@@ -95,16 +95,16 @@ if [[ -z "$RUNTIME" ]]; then
   esac
 fi
 
-if [[ "$MODE" == "hardware" && "$RUNTIME" == "docker" ]]; then
-  echo "Hardware mode is not supported inside Docker Desktop." >&2
-  echo "Use native Ubuntu (or experimental WSL + usbipd) with --runtime native." >&2
-  exit 1
-fi
+# if [[ "$MODE" == "hardware" && "$RUNTIME" == "docker" ]]; then
+#   echo "Hardware mode is not supported inside Docker Desktop." >&2
+#   echo "Use native Ubuntu (or experimental WSL + usbipd) with --runtime native." >&2
+#   exit 1
+# fi
 
-if [[ "$MODE" == "hardware" && "$OS_KIND" == "macos" ]]; then
-  echo "Hardware mode is not supported on macOS." >&2
-  exit 1
-fi
+# if [[ "$MODE" == "hardware" && "$OS_KIND" == "macos" ]]; then
+#   echo "Hardware mode is not supported on macOS." >&2
+#   exit 1
+# fi
 
 echo "Detected OS: $OS_KIND"
 echo "Runtime: $RUNTIME"
@@ -120,7 +120,7 @@ run_native() {
   source /opt/ros/jazzy/setup.bash
   if [[ ! -f "$ROOT/install/setup.bash" ]]; then
     echo "Building workspace…"
-    colcon build --symlink-install
+    colcon build
   fi
   # shellcheck disable=SC1091
   source "$ROOT/install/setup.bash"

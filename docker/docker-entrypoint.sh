@@ -32,7 +32,7 @@ cd /workspace
 # --symlink-install keeps colcon from re-copying the ~16 MB of meshes into
 # install/ on every single start; it matches what tools/run does natively.
 echo "Building workspace inside container…"
-colcon build --symlink-install
+colcon build --symlink-install --packages-ignore orbbec_camera orbbec_camera_msgs
 # shellcheck disable=SC1091
 source /workspace/install/setup.bash
 set -u

@@ -30,3 +30,6 @@ Thumbs.db
 # Temporary / editor
 *.tmp
 *~
+/scan
+/scans
+

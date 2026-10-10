@@ -4,11 +4,18 @@ services:
     image: tuwrc-basil-farm-robotcontrol:jazzy
     container_name: tuwrc_robotcontrol
     working_dir: /workspace
+    stdin_open: true
+    tty: true
     volumes:
       - .:/workspace
       - build_data:/workspace/build
       - install_data:/workspace/install
       - log_data:/workspace/log
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+      - /dev/bus/usb:/dev/bus/usb   # needed for the Gemini 2 camera (libusb)
+    group_add:
+      - dialout
     environment:
       - QT_X11_NO_MITSHM=1
       - LIBGL_ALWAYS_SOFTWARE=1
@@ -22,6 +29,10 @@ services:
       - TUWRC_USE_MOVEIT=${TUWRC_USE_MOVEIT:-true}
       - TUWRC_USE_GUI=${TUWRC_USE_GUI:-true}
       - TUWRC_MOCK_RATE=${TUWRC_MOCK_RATE:-20.0}
+    device_cgroup_rules:
+      - 'c 189:* rmw'
+    security_opt:
+      - label=disable   # Fedora/SELinux workaround; try removing later
     ports:
       - "6080:6080"
       - "5901:5901"

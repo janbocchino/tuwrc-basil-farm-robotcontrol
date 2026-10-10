@@ -4,155 +4,236 @@ GitHub: [https://github.com/janbocchino/tuwrc-basil-farm-robotcontrol](https://g
 
 One shared ROS 2 project for the TUWRC basil-farm robot: Max’s measured SO-101 arm on the prismatic X-rail, with RViz, MoveIt, a browser GUI, mock view mode, and real arm hardware support on Linux.
 
-## What this project does
+| Mode | What you get | Where it runs |
+| --- | --- | --- |
+| **view** | Simulated joint motion in RViz and the browser GUI | macOS, Windows/WSL, Linux |
+| **hardware** | Real six-servo arm over USB. Rail held at 0 m | Native Ubuntu 24.04 |
 
+Gazebo is not part of the MVP. The physical rail motor is not driven yet.
 
-| Mode         | What you get                                   | Who should use it                    |
-| ------------ | ---------------------------------------------- | ------------------------------------ |
-| **view**     | Simulated joint motion in RViz + browser GUI   | Everyone (macOS, Windows/WSL, Linux) |
-| **hardware** | Real six-servo arm over USB + rail held at 0 m | Native Ubuntu (recommended)          |
+## View mode
 
+View mode runs a mock arm and a movable rail (±0.5 m). On macOS and Windows it runs in Docker. On Ubuntu you can use Docker or a native ROS 2 install.
 
-Gazebo is intentionally **not** required for the MVP. The physical rail motor is also **not** supported yet; in hardware mode the rail stays fixed at zero.
-
-## Prerequisites
-
-
-
-### All platforms
+### Shared setup
 
 - Git
 - Git LFS (`git lfs install`)
-- Docker Desktop or Docker Engine (**required on macOS / Windows**; optional on Linux)
+- Docker Desktop or Docker Engine (required on macOS and Windows; optional on Linux)
 
+Clone the whole repository, then pull the meshes:
 
-
-### Native Ubuntu 24.04 (hardware and native view)
-
-- ROS 2 **Jazzy**
-- Packages used by this workspace: `rviz2`, `xacro`, `robot-state-publisher`, `moveit`, `control-msgs`, `python3-serial`, `python3-yaml`, `python3-colcon-common-extensions`
-- User in the `dialout` group for USB serial
-
-
-
-## Quick start
-
-
+```bash
+git lfs install
+git clone git@github.com:janbocchino/tuwrc-basil-farm-robotcontrol.git
+cd tuwrc-basil-farm-robotcontrol
+git lfs pull
+```
 
 ### macOS
 
 1. Install Docker Desktop and start it.
-2. Clone this repository (whole repo, not only `src/`).
-3. Install Git LFS once: `git lfs install && git lfs pull`
-4. Start view mode:
+2. From the repository root:
 
 ```bash
-cd tuwrc-basil-farm-robotcontrol
 ./tools/run --mode view
 ```
 
-1. Open:
-  - RViz desktop: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html) (password: `ros`)
-  - Browser GUI: [http://localhost:3000](http://localhost:3000)
+3. Open:
+   - RViz desktop: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html) (password: `ros`)
+   - Browser GUI: [http://localhost:3000](http://localhost:3000)
 
-Stop with `Ctrl+C` in the terminal, or:
+Stop with `Ctrl+C`, or:
 
 ```bash
 docker compose --profile view down
 ```
 
-#### If your machine gets hot
-
-Docker on macOS and Windows has no GPU to pass through, so RViz is rendered
-entirely on the CPU. RViz is by far the most expensive process in view mode —
-it redraws continuously even when the robot is still and even when no browser
-is connected to noVNC. The other nodes together use only a few percent.
-
-Measured on an M-series Mac (10-CPU Docker VM), idle and stationary:
-
-| Command                                | Container CPU |
-| -------------------------------------- | ------------- |
-| `./tools/run --mode view`              | ~140 %        |
-| `./tools/run --mode view --no-moveit`  | ~57 %         |
-| `./tools/run --mode view --no-rviz`    | ~10 %         |
-
-`--no-rviz` keeps the browser GUI at [http://localhost:3000](http://localhost:3000)
-fully working — joint control, the end-effector pose readout and MoveIt IK all
-still function. You only lose the 3D view. This is the recommended way to work
-when you do not need to watch the robot.
-
-Further knobs (environment variables, all optional):
-
-| Variable              | Default     | Effect                                                     |
-| --------------------- | ----------- | ---------------------------------------------------------- |
-| `TUWRC_VNC_GEOMETRY`  | `1600x900`  | noVNC desktop size; smaller = less to rasterize and encode |
-| `LP_NUM_THREADS`      | `4`         | Caps the software renderer's threads                       |
-| `TUWRC_MOCK_RATE`     | `20.0`      | `/joint_states` publish rate in Hz (view mode)             |
-| `TUWRC_VNC_SESSION`   | `light`     | `full` gives the complete XFCE desktop inside noVNC        |
-
-`--geometry` on `./tools/run` sets `TUWRC_VNC_GEOMETRY` for you.
-
-
-
 ### Windows (WSL2)
 
 1. Install Docker Desktop with WSL2 integration, or Docker Engine inside WSL.
-2. Clone the repository inside WSL.
-3. `git lfs install && git lfs pull`
-4. Run:
+2. Clone the repository inside WSL and run `git lfs install && git lfs pull`.
+3. From the repository root:
 
 ```bash
 ./tools/run --mode view
 ```
 
-1. Open the same URLs as macOS from the Windows browser (`localhost:6080` and `:3000`).
+4. Open the same URLs as macOS from the Windows browser (`localhost:6080` and `localhost:3000`).
 
-USB hardware through WSL (`usbipd-win`) is **experimental** and not the default path.
+USB hardware through WSL (`usbipd-win`) is experimental. Use native Ubuntu for the real arm.
 
-### Native Ubuntu 24.04
+### Ubuntu
 
 View mode without Docker:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-cd tuwrc-basil-farm-robotcontrol
 colcon build --symlink-install
 source install/setup.bash
 ./tools/run --mode view --runtime native
 ```
 
-Hardware mode (real arm):
+RViz opens as a normal Linux window. The GUI is at [http://localhost:3000](http://localhost:3000).
+
+Docker view mode (`./tools/run --mode view`) also works on Ubuntu if ROS is not installed.
+
+### If the machine gets hot
+
+Docker on macOS and Windows has no GPU passthrough, so RViz renders on the CPU. It redraws continuously even when the robot is still and even when no browser is connected to noVNC.
+
+Measured on an M-series Mac (10-CPU Docker VM), idle and stationary:
+
+| Command | Container CPU |
+| --- | --- |
+| `./tools/run --mode view` | ~140 % |
+| `./tools/run --mode view --no-moveit` | ~57 % |
+| `./tools/run --mode view --no-rviz` | ~10 % |
+
+`--no-rviz` keeps the browser GUI fully working: joint control, the end-effector pose readout, and MoveIt IK. You lose only the 3D view.
+
+Optional environment variables:
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `TUWRC_VNC_GEOMETRY` | `1600x900` | noVNC desktop size; smaller means less to rasterize and encode |
+| `LP_NUM_THREADS` | `4` | Caps the software renderer's threads |
+| `TUWRC_MOCK_RATE` | `20.0` | `/joint_states` publish rate in Hz |
+| `TUWRC_VNC_SESSION` | `light` | `full` gives the complete XFCE desktop inside noVNC |
+
+`./tools/run --geometry 1280x720` sets `TUWRC_VNC_GEOMETRY` for you.
+
+### Try a movement
+
+With bringup already running:
+
+1. Wait until the GUI status shows controllers ready.
+2. Click **Fill current**.
+3. Change one arm joint by a few degrees.
+4. Click **Send**.
+5. Watch RViz update.
+
+Scripted motion, from a second terminal. `./tools/example` sets up the Docker or native ROS environment:
 
 ```bash
-# one-time
-sudo usermod -aG dialout "$USER"   # then log out/in
-ls /dev/ttyACM* /dev/ttyUSB*
+./tools/example small_arm_motion --return-home
+./tools/example leaf_pick_imitation --move-rail --return-home
+./tools/example leaf_pick_imitation --scale 0.5 --return-home
+```
 
+`leaf_pick_imitation` is a jaw open/close snip gesture. `--move-rail` works in view mode only.
+
+## Hardware mode
+
+Hardware mode runs on the Ubuntu computer that has the arm plugged in. It drives the six servos over USB and holds the rail at 0 m. Docker refuses this mode.
+
+### One-time setup
+
+Ubuntu 24.04 with ROS 2 Jazzy:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  ros-jazzy-rviz2 \
+  ros-jazzy-xacro \
+  ros-jazzy-robot-state-publisher \
+  ros-jazzy-moveit \
+  ros-jazzy-control-msgs \
+  python3-serial \
+  python3-yaml \
+  python3-colcon-common-extensions
+
+sudo usermod -aG dialout "$USER"
+```
+
+Log out and back in after the `dialout` change so the shell can open the USB serial port.
+
+In the repository:
+
+```bash
+git lfs install
+git lfs pull
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+```
+
+### Connect the arm
+
+Plug the arm in with a data USB cable, then see which port appeared:
+
+```bash
+ls /dev/ttyACM* /dev/ttyUSB*
+```
+
+The usual port is `/dev/ttyACM0`. Pass a different path with `--port` if the name differs.
+
+Keep people and objects clear of the arm before the next step.
+
+### Start
+
+Leave this terminal running:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
 ./tools/run --mode hardware --runtime native --port /dev/ttyACM0
 ```
 
-Then open the GUI at [http://localhost:3000](http://localhost:3000). RViz opens as a normal Linux window.
+RViz opens as a normal Linux window. The GUI is at [http://localhost:3000](http://localhost:3000). Wait until the status says the controllers are ready.
 
-### Orbbec Gemini 2 depth camera
+### First movements
 
-The supported deployment keeps all live robot I/O on a native Ubuntu 24.04
-computer connected directly to the arm and Gemini 2. It uses Orbbec's ROS 2
-driver pinned in `dependencies/orbbec.repos`.
+Start in the GUI, one joint only:
 
-- **Ubuntu robot computer:** run the arm driver, camera driver, TF, MoveIt and
-  point-cloud consumers.
-- **macOS development computer:** edit the shared repository and use Docker
-  `view` mode with mock joints. Recorded camera data can be replayed here for
-  later perception development.
+1. Click **Fill current**.
+2. Change one arm joint by a few degrees.
+3. Click **Send**.
+4. Confirm the real arm and RViz both move.
 
-Docker Desktop cannot pass the camera through with a normal `--device` mapping
-because containers run inside a Linux VM. USB/IP can sometimes bridge USB
-devices into that VM, but it is not part of the supported workflow: the Gemini
-2's high-bandwidth RGB-D streams have not been validated over that path.
-Likewise, the Orbbec SDK supports macOS, but its ROS 2 wrapper documents Linux
-as the supported platform.
+Then, from a second terminal, with bringup still running:
 
-One-time source and system setup:
+```bash
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+./tools/example small_arm_motion --hardware --allow-hardware --return-home
+```
+
+That nudges joints 1–4 and 6 by small amounts (about 0.08–0.15 rad) and returns to the start pose. The script refuses to move the real arm without `--allow-hardware`.
+
+A smaller scripted move:
+
+```bash
+./tools/example small_arm_motion --hardware --allow-hardware --delta-deg 5 --return-home
+```
+
+`--delta-deg` must stay within ±20 degrees.
+
+After that looks right, the jaw open/close gesture:
+
+```bash
+./tools/example leaf_pick_imitation --hardware --allow-hardware --scale 0.5 --return-home
+```
+
+Leave `--move-rail` off on the real robot. The rail stays fixed at 0 m until a rail driver exists.
+
+### Calibration and safety
+
+- Measured joint limits and zero positions live in `src/six_motor_driver/config/six_motor_calibration.yaml`.
+- Change calibration or URDF joint limits only after a documented physical check. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Use tiny deltas first.
+- Hardware scripts require `--allow-hardware`.
+
+## Depth camera
+
+The Orbbec Gemini 2 runs on the same native Ubuntu 24.04 computer as the arm, using the driver pinned in `dependencies/orbbec.repos`.
+
+- **Ubuntu robot computer:** arm driver, camera driver, TF, MoveIt, and point-cloud consumers.
+- **macOS development computer:** edit the repo and use Docker view mode. Replay recorded camera data there for later perception work.
+
+The Gemini 2 needs a direct USB connection on Ubuntu. Docker Desktop on macOS cannot pass the camera through with a normal `--device` mapping, because containers run inside a Linux VM. The Orbbec ROS 2 wrapper documents Linux as the supported platform.
+
+One-time source and system setup, after the hardware setup above:
 
 ```bash
 sudo apt update
@@ -169,14 +250,13 @@ rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-# Required once for non-root USB access, then unplug/reconnect the camera.
+# Required once for non-root USB access, then unplug and reconnect the camera.
 sudo bash src/OrbbecSDK_ROS2/orbbec_camera/scripts/install_udev_rules.sh
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-Use a data-capable USB 3 cable and update the Gemini 2 to Orbbec's recommended
-firmware `1.4.98`. Verify discovery before starting the arm:
+Use a data-capable USB 3 cable and update the Gemini 2 to Orbbec firmware `1.4.98`. Check discovery before starting the arm:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -184,214 +264,104 @@ source install/setup.bash
 ros2 run orbbec_camera list_devices_node
 ```
 
-Start the real arm and depth point cloud:
+Start the real arm and the depth point cloud:
 
 ```bash
 ./tools/run --mode hardware --runtime native --camera
 
-# Optional additional RGB-colored registered cloud:
+# Optional RGB-colored registered cloud:
 ./tools/run --mode hardware --runtime native --colored-point-cloud
 ```
 
-Expected camera outputs include:
+Expected topics:
 
 - `/camera/color/image_raw` and `/camera/color/camera_info`
 - `/camera/depth/image_raw` and `/camera/depth/camera_info`
 - `/camera/depth/points`
 - `/camera/depth_registered/points` when `--colored-point-cloud` is used
 
-In RViz, add a `PointCloud2` display for `/camera/depth/points` and use `world`
-as the fixed frame. If the cloud follows the gripper but is offset or rotated
-incorrectly, replace the provisional `camera_mount_*` values near the top of
-`src/lerobot_description/urdf/so101_base.xacro` with the measured
-`gripper`-to-`camera_link` transform. The current zero values are placeholders
-and are not suitable for world-coordinate perception.
+In RViz, add a `PointCloud2` display for `/camera/depth/points` and set the fixed frame to `world`. If the cloud follows the gripper but sits offset or rotated, replace the provisional `camera_mount_*` values near the top of `src/lerobot_description/urdf/so101_base.xacro` with the measured `gripper` to `camera_link` transform. The current zeros are placeholders.
 
 Camera troubleshooting:
 
-- `Permission denied` or no device: rerun the udev setup, reconnect the camera,
-  and do not run the ROS node with `sudo`.
-- USB 3 detection or missing streams: change the cable/port and avoid hubs.
-- Point cloud exists but RViz cannot transform it: confirm
-  `gripper -> camera_link` and the driver's optical frames are present in TF.
-- High bandwidth/CPU: leave the colored cloud disabled and select lower
-  resolution/FPS through `tuwrc_bringup/launch/gemini2.launch.py`.
+- `Permission denied` or no device: rerun the udev setup, reconnect the camera, and start the ROS node as your user.
+- USB 3 detection or missing streams: change the cable or port and plug in directly.
+- Point cloud exists but RViz cannot transform it: confirm `gripper` → `camera_link` and the driver's optical frames are in TF.
+- High bandwidth or CPU: leave the colored cloud off and lower resolution or FPS in `tuwrc_bringup/launch/gemini2.launch.py`.
 
-## Safe first movements
+## Control contract
 
-In **view** mode, use the browser GUI:
+Both modes use the same actions:
 
-1. Wait until status shows controllers ready.
-2. Click **Fill current**.
-3. Change one arm joint by a few degrees.
-4. Click **Send**.
-5. Watch RViz update.
+- Arm and gripper: `/six_motor_controller/follow_joint_trajectory` (joints `1`–`6`)
+- Rail: `/rail_controller/follow_joint_trajectory` (joint `rail_joint`)
+- Feedback: `/joint_states`
+- Pose IK: MoveIt `/compute_ik`, group `arm`, frames `world` → `tcp`
 
-Optional scripted motion (with bringup already running). `./tools/example`
-handles Docker vs native ROS env setup for you:
-
-```bash
-./tools/example small_arm_motion --return-home
-./tools/example leaf_pick_imitation --move-rail --return-home
-./tools/example leaf_pick_imitation --scale 0.5 --return-home
-
-# Real hardware (native Ubuntu only; extra confirmation required)
-./tools/example small_arm_motion --hardware --allow-hardware --return-home
-./tools/example leaf_pick_imitation --hardware --allow-hardware --scale 0.5 --return-home
-```
-
-`leaf_pick_imitation` is a jaw open/close snip gesture (no cutter tool).
-`--move-rail` is view-mode only.
-
+| Mode | Arm controller | Rail controller |
+| --- | --- | --- |
+| view | `tuwrc_mock_hardware` | mock (movable ±0.5 m) |
+| hardware | `six_motor_driver` | `rail_hold` (fixed 0 m) |
 
 ## Repository map
 
 ```text
 tuwrc-basil-farm-robotcontrol/
-├── README.md                 ← you are here
-├── CONTRIBUTING.md           ← branch/PR rules
+├── README.md
+├── CONTRIBUTING.md
 ├── dependencies/             ← pinned third-party ROS source manifests
 ├── Dockerfile                ← ROS 2 Jazzy + noVNC image
 ├── docker-compose.yml
 ├── docker/                   ← container entrypoint
-├── tools/run                 ← cross-platform start script
-├── tools/example             ← short runner for motion example scripts
-├── tests/                    ← offline contract tests
+├── tools/run                 ← start script
+├── tools/example             ← motion example runner
+├── tests/
 └── src/
-    ├── lerobot_description/  ← URDF/xacro, meshes, RViz display config
-    ├── six_motor_driver/     ← real ST3215 arm driver + calibration
-    ├── six_motor_moveit_config/ ← MoveIt planning / controllers / RViz
+    ├── lerobot_description/  ← URDF/xacro, meshes, RViz config
+    ├── six_motor_driver/     ← ST3215 arm driver + calibration
+    ├── six_motor_moveit_config/
     ├── lerobot_gui/          ← browser UI (port 3000)
-    ├── tuwrc_bringup/        ← unified launch: view | hardware
-    ├── tuwrc_mock_hardware/  ← mock arm+rail (view) and rail_hold (hardware)
-    └── tuwrc_motion_examples/← small_arm_motion + leaf_pick_imitation
+    ├── tuwrc_bringup/        ← launch: view | hardware
+    ├── tuwrc_mock_hardware/
+    └── tuwrc_motion_examples/
 ```
 
-Important files:
+| Path | Purpose |
+| --- | --- |
+| `src/lerobot_description/urdf/so101_base.xacro` | Rail + measured arm model |
+| `src/lerobot_description/meshes/` | STL meshes (Git LFS) |
+| `src/six_motor_driver/config/six_motor_calibration.yaml` | Real-robot calibration |
+| `src/tuwrc_bringup/launch/robot.launch.py` | Main launch file |
+| `src/lerobot_gui/lerobot_gui/joint_state_gui.py` | Browser GUI |
+| `tools/run` | OS-aware launcher |
 
+## Git
 
-| Path                                                     | Purpose                   |
-| -------------------------------------------------------- | ------------------------- |
-| `src/lerobot_description/urdf/so101_base.xacro`          | Rail + measured arm model |
-| `src/lerobot_description/meshes/`                        | STL meshes (Git LFS)      |
-| `src/six_motor_driver/config/six_motor_calibration.yaml` | Real-robot calibration    |
-| `src/tuwrc_bringup/launch/robot.launch.py`               | Main launch file          |
-| `src/lerobot_gui/lerobot_gui/joint_state_gui.py`         | Browser GUI               |
-| `tools/run`                                              | OS-aware launcher         |
+Push the whole repository. Docker files, `tools/`, this README, and the manifests are required on every OS. Branch and pull-request rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Commit source, launch files, calibration, meshes (via Git LFS), tests, docs, Docker, and `tools/`. Leave `build/`, `install/`, `log/`, IDE settings, and `.env` untracked.
 
+If RViz is missing meshes, run `git lfs pull`.
 
-
-## Modes and control contract
-
-Both modes use the same actions:
-
-- Arm/gripper: `/six_motor_controller/follow_joint_trajectory` (joints `1`–`6`)
-- Rail: `/rail_controller/follow_joint_trajectory` (joint `rail_joint`)
-- Feedback: `/joint_states`
-- Pose IK (optional): MoveIt `/compute_ik`, group `arm`, frames `world` → `tcp`
-
-
-| Mode     | Arm controller        | Rail controller         |
-| -------- | --------------------- | ----------------------- |
-| view     | `tuwrc_mock_hardware` | mock (movable ±0.5 m)   |
-| hardware | `six_motor_driver`    | `rail_hold` (fixed 0 m) |
-
-
-
-
-## Git and GitHub workflow
-
-**Push the whole repository**, not only `src/`. Docker files, `tools/`, README, and manifests are required for teammates on other OSes.
-
-### Clone
-
-```bash
-git lfs install
-git clone git@github.com:janbocchino/tuwrc-basil-farm-robotcontrol.git
-cd tuwrc-basil-farm-robotcontrol
-git lfs pull
-```
-
-
-
-### Daily work
-
-```bash
-git checkout main
-git pull
-git checkout -b feature/short-description
-# edit files…
-git status
-git add -A
-git commit -m "Describe why the change exists"
-git push -u origin HEAD
-```
-
-Then open a pull request on GitHub.
-
-### What to commit / ignore
-
-Commit:
-
-- source under `src/`
-- launch/config/calibration
-- meshes (via Git LFS)
-- tests, docs, Docker, `tools/`
-
-Do **not** commit (already in `.gitignore`):
-
-- `build/`, `install/`, `log/`
-- local IDE settings, `.env`, temporary files
-
-
-
-### Git LFS
-
-Meshes are large STL files. After cloning on a new machine:
-
-```bash
-git lfs install
-git lfs pull
-```
-
-If RViz shows missing meshes, you probably forgot `git lfs pull`.
-
-## Calibration and safety
-
-- Measured joint limits and zero positions live in `six_motor_calibration.yaml`.
-- Do **not** change calibration or URDF joint limits without a documented physical verification.
-- Use tiny deltas first.
-- Hardware scripts require `--allow-hardware`.
-- Rail physical motion is disabled until a real rail driver exists.
-
-
-
-## Deferred / later TODOs
+## Later
 
 - Gazebo simulation parity
-- Accurate rail-to-arm geometry from the fully assembled CAD model (current rail placement is provisional; mount args are in `so101_base.xacro`)
-- Real rail motor/encoder/homing/E-stop driver
-- Perfect visual seating of the arm on the slider
-
-
+- Rail-to-arm geometry from the assembled CAD model (mount args in `so101_base.xacro` are provisional)
+- Real rail motor, encoder, homing, and E-stop driver
+- Visual seating of the arm on the slider
 
 ## Troubleshooting
 
-
-| Problem                       | Fix                                                                         |
-| ----------------------------- | --------------------------------------------------------------------------- |
-| Docker not found              | Install/start Docker Desktop                                                |
-| Port 6080/3000 busy           | Stop old containers: `docker compose --profile view down`                   |
-| Missing meshes in RViz        | `git lfs pull`                                                              |
-| No `/dev/ttyACM*`             | Check USB cable; on WSL use `usbipd`; on Linux join `dialout`               |
-| Hardware refused in Docker    | Expected — use native Ubuntu                                                |
-| Controllers not ready in GUI  | Wait for bringup; check terminal logs                                       |
-| Mac fans spin up in view mode | Expected — RViz renders on the CPU. Use `--no-rviz`; see "If your machine gets hot" |
-| `colcon` / ROS missing on Mac | Use Docker view mode; do not install ROS natively on macOS for this project |
-
-
-
+| Problem | Fix |
+| --- | --- |
+| Docker not found | Install and start Docker Desktop |
+| Port 6080 or 3000 busy | `docker compose --profile view down` |
+| Missing meshes in RViz | `git lfs pull` |
+| No `/dev/ttyACM*` | Check the USB cable. On Linux, join `dialout` and log in again |
+| Hardware refused in Docker | Run hardware mode on native Ubuntu |
+| Controllers not ready in the GUI | Wait for bringup and check the terminal logs |
+| Mac fans spin up in view mode | Use `--no-rviz`. See [If the machine gets hot](#if-the-machine-gets-hot) |
+| `colcon` or ROS missing on Mac | Use Docker view mode |
 
 ## License
 

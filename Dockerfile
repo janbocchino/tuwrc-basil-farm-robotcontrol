@@ -40,8 +40,38 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-control-msgs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /workspace
+# camera things
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-jazzy-orbbec-camera \ 
+    ros-jazzy-orbbec-description \
+    ros-jazzy-rqt-image-view \
+    python3-pip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /root/ros2_ws/src
+
+RUN git clone --branch v2-main --single-branch \
+    https://github.com/orbbec/OrbbecSDK_ROS2.git \
+    /root/ros2_ws/src/OrbbecSDK_ROS2
+
+RUN pip install st3215 --break-system-packages
+
+WORKDIR /root/ros2_ws
+
+RUN . /opt/ros/jazzy/setup.sh && \
+    colcon build --event-handlers console_direct+ --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+WORKDIR /workspace
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ros-$ROS_DISTRO-tf2-sensor-msgs \
+        ros-$ROS_DISTRO-tf2-ros-py \
+        libgl1 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --break-system-packages --ignore-installed \
+        --timeout 120 --retries 10 \
+        "open3d>=0.19" "numpy<2" "setuptools<80"
 # VNC password + session. Both are independent of the workspace sources, so
 # they stay cached when only src/ changes.
 RUN mkdir -p /root/.vnc \
