@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot name="so101_rail">
   <group name="arm">
-    <chain base_link="rail_link" tip_link="tcp" />
+    <chain base_link="world" tip_link="tcp" />
   </group>
   <group name="gripper">
     <joint name="6" />

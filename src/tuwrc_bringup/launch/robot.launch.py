@@ -33,8 +33,10 @@ def launch_setup(context):
         )
 
     port = LaunchConfiguration("port").perform(context)
+    rail_port = LaunchConfiguration("rail_port").perform(context)
     gui_port = LaunchConfiguration("gui_port").perform(context)
     mock_rate = float(LaunchConfiguration("mock_rate").perform(context))
+    steps_per_meter = float(LaunchConfiguration("steps_per_meter").perform(context))
 
     bringup_share = Path(get_package_share_directory("tuwrc_bringup"))
     desc_share = Path(get_package_share_directory("lerobot_description"))
@@ -53,7 +55,7 @@ def launch_setup(context):
     )
 
     robot_description = ParameterValue(
-        Command(["xacro ", str(urdf_file)]), value_type=str
+        Command(["xacro ", f"'{urdf_file}'"]), value_type=str
     )
 
     actions = [
@@ -93,7 +95,11 @@ def launch_setup(context):
                 ),
                 Node(
                     package="tuwrc_mock_hardware",
-                    executable="rail_hold",
+                    executable="rail_driver",
+                    parameters=[{
+                        "port": rail_port,
+                        "steps_per_meter": steps_per_meter,
+                    }],
                     output="screen",
                 ),
             ]
@@ -199,6 +205,12 @@ def generate_launch_description():
                 default_value="false",
             ),
             DeclareLaunchArgument("port", default_value="/dev/ttyACM0"),
+            DeclareLaunchArgument("rail_port", default_value="/dev/ttyUSB1"),
+            DeclareLaunchArgument(
+                "steps_per_meter",
+                default_value="100000.0",
+                description="Rail stepper steps per meter — measured: 1000 steps/cm",
+            ),
             DeclareLaunchArgument("gui_port", default_value="3000"),
             DeclareLaunchArgument(
                 "mock_rate",

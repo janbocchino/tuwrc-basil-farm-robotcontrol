@@ -301,7 +301,7 @@ Both modes use the same actions:
 | Mode | Arm controller | Rail controller |
 | --- | --- | --- |
 | view | `tuwrc_mock_hardware` | mock (movable ±0.5 m) |
-| hardware | `six_motor_driver` | `rail_hold` (fixed 0 m) |
+| hardware | `six_motor_driver` | `rail_driver` (real stepper via Arduino) |
 
 ## Repository map
 
@@ -342,6 +342,47 @@ Push the whole repository. Docker files, `tools/`, this README, and the manifest
 Commit source, launch files, calibration, meshes (via Git LFS), tests, docs, Docker, and `tools/`. Leave `build/`, `install/`, `log/`, IDE settings, and `.env` untracked.
 
 If RViz is missing meshes, run `git lfs pull`.
+
+## Update — 2025-10-03 (Youssef & David)
+
+### What we did
+
+**Hardware brought up:**
+- Connected SO-101 arm via USB → `/dev/ttyACM0`
+- Connected Arduino stepper controller for the rail via USB → `/dev/ttyUSB1`
+- Resolved stepper driver ENA pin (enable pin must be pulled LOW)
+- Measured rail calibration: **1000 steps = 1 cm** → `steps_per_meter = 100 000`
+
+**Software changes:**
+- Installed `git-lfs` and pulled STL meshes (`git lfs pull`)
+- Installed `st3215` Python library (`pip install st3215`)
+- Fixed `tools/run`: added `set +u` around ROS `source` calls to suppress `AMENT_TRACE_SETUP_FILES` / `COLCON_TRACE` unbound-variable errors
+- Fixed `robot.launch.py`: quoted the xacro path so spaces in the workspace path don't break the command
+- Replaced `rail_hold` with a real `rail_driver` node (`src/tuwrc_mock_hardware/tuwrc_mock_hardware/rail_driver.py`) that communicates with the Arduino over serial
+- Added `--rail-port` flag to `tools/run` (default `/dev/ttyUSB1`)
+- Fixed SRDF arm chain: changed `base_link` from `rail_link` → `world` so MoveIt includes `rail_joint` in planning
+- Unblocked rail motion in the browser GUI for hardware mode
+- Added `/tuwrc_rail_driver/set_home` service to zero the rail position counter
+
+**Current launch command:**
+```bash
+./tools/run --mode hardware --runtime native --port /dev/ttyACM0 --rail-port /dev/ttyUSB1
+```
+
+**Home the rail after launch:**
+```bash
+# 1. Physically slide the rail to the centre mark
+# 2. Then call:
+ros2 service call /tuwrc_rail_driver/set_home std_srvs/srv/Trigger {}
+```
+
+### What still needs to be done
+
+- **Physical centre mark** on the rail so homing is repeatable
+- **End-stop / encoder** for automatic homing (currently manual)
+- **Steps-per-metre verification** — measured at 100 000, but should be confirmed over a longer known distance
+- **Coordinated arm + rail motion** via MoveIt end-to-end test
+- Rail-to-arm geometry in `so101_base.xacro` (mount offsets are still provisional)
 
 ## Later
 

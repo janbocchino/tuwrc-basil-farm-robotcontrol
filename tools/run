@@ -8,6 +8,7 @@ cd "$ROOT"
 MODE="view"
 RUNTIME=""
 PORT="/dev/ttyACM0"
+RAIL_PORT="/dev/ttyUSB1"  # Arduino stepper controller
 USE_RVIZ="true"
 USE_MOVEIT="true"
 USE_GUI="true"
@@ -22,7 +23,8 @@ Usage: ./tools/run [--mode view|hardware] [--runtime native|docker] [options]
 Options:
   --mode view|hardware     view = mock robot in RViz; hardware = real arm (Linux)
   --runtime native|docker  force runtime (default: auto-detect)
-  --port PATH              serial port for hardware mode (default: /dev/ttyACM0)
+  --port PATH              serial port for arm (default: /dev/ttyACM0)
+  --rail-port PATH         serial port for rail Arduino (default: /dev/ttyUSB1)
   --no-rviz                do not start RViz
   --no-moveit              do not start MoveIt
   --no-gui                 do not start the browser GUI
@@ -47,6 +49,7 @@ while [[ $# -gt 0 ]]; do
     --mode) MODE="$2"; shift 2 ;;
     --runtime) RUNTIME="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
+    --rail-port) RAIL_PORT="$2"; shift 2 ;;
     --no-rviz) USE_RVIZ="false"; shift ;;
     --no-moveit) USE_MOVEIT="false"; shift ;;
     --no-gui) USE_GUI="false"; shift ;;
@@ -117,13 +120,17 @@ run_native() {
     exit 1
   fi
   # shellcheck disable=SC1091
+  set +u
   source /opt/ros/jazzy/setup.bash
+  set -u
   if [[ ! -f "$ROOT/install/setup.bash" ]]; then
     echo "Building workspace…"
     colcon build
   fi
   # shellcheck disable=SC1091
+  set +u
   source "$ROOT/install/setup.bash"
+  set -u
   if [[ "$USE_CAMERA" == "true" ]] && ! ros2 pkg prefix orbbec_camera >/dev/null 2>&1; then
     echo "orbbec_camera is not installed in this workspace." >&2
     echo "Follow the Gemini 2 setup steps in README.md, then rebuild with colcon." >&2
@@ -136,7 +143,8 @@ run_native() {
     use_gui:="$USE_GUI" \
     use_camera:="$USE_CAMERA" \
     enable_colored_point_cloud:="$ENABLE_COLORED_POINT_CLOUD" \
-    port:="$PORT"
+    port:="$PORT" \
+    rail_port:="$RAIL_PORT"
 }
 
 run_docker() {

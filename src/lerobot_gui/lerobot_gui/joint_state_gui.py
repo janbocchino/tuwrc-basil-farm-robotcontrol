@@ -609,9 +609,7 @@ class JointStateNode(Node):
             if name in LINEAR_JOINTS
         }
         if rail and self._mode == "hardware":
-            raise RuntimeError(
-                "Physical rail motion is disabled. Arm joints can still move."
-            )
+            self.get_logger().info("Sending rail trajectory to real rail driver.")
         if arm:
             self._send_action(self._arm_client, ARM_ACTION_NAME, arm, duration_sec)
         if rail:
@@ -711,8 +709,7 @@ class JointStateNode(Node):
         if not solution:
             raise RuntimeError("MoveIt IK returned no arm joint solution.")
         if self._mode == "hardware" and "rail_joint" in solution:
-            # Keep the physical rail fixed; still apply the arm portion.
-            solution.pop("rail_joint", None)
+            self.get_logger().info("IK solution includes rail_joint — sending to rail driver.")
         self.send_trajectory(solution, duration_sec)
         self.get_logger().info(f"Sent pose target via IK: {pose_target}")
 

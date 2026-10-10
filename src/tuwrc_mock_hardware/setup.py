@@ -20,6 +20,7 @@ setup(
         "console_scripts": [
             "mock_hardware = tuwrc_mock_hardware.mock_hardware:main",
             "rail_hold = tuwrc_mock_hardware.rail_hold:main",
+            "rail_driver = tuwrc_mock_hardware.rail_driver:main",
         ],
     },
 )
