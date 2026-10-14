@@ -16,17 +16,11 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
+from .limits import JOINT_LIMITS
+
 
 ARM_ACTION = "/six_motor_controller/follow_joint_trajectory"
 ARM_JOINTS = ["1", "2", "3", "4", "5", "6"]
-JOINT_LIMITS = {
-    "1": (-2.06780610, 2.06780610),
-    "2": (-1.85304879, 1.85304879),
-    "3": (-1.68737887, 1.68891285),
-    "4": (-1.80702937, 1.80702937),
-    "5": (-2.89308777, 2.89308777),
-    "6": (-0.18561168, 2.03252454),
-}
 # Conservative default deltas (radians).
 DEFAULT_DELTAS = {
     "1": 0.15,

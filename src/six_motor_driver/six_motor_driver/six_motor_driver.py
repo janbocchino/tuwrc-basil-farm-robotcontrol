@@ -5,10 +5,8 @@ from __future__ import annotations
 
 import glob
 import math
-import sys
 import threading
 import time
-from pathlib import Path
 
 import rclpy
 from control_msgs.action import FollowJointTrajectory
@@ -22,27 +20,18 @@ from .cyclic_calibration import (
     STEPS_PER_REVOLUTION,
     CyclicJointCalibration,
 )
+from .trajectory_timing import (
+    segment_speed_steps_s,
+    validate_time_from_start,
+)
+from .st3215_import import load_st3215
 
 
-def import_st3215():
-    try:
-        from st3215 import ST3215
-        return ST3215
-    except ImportError:
-        library = Path.home() / "libs" / "python-st3215"
-        if library.is_dir():
-            sys.path.insert(0, str(library))
-            from st3215 import ST3215
-            return ST3215
-        raise
-
-
-ST3215 = import_st3215()
+ST3215 = load_st3215()
 
 
 class SixMotorDriver(Node):
     COUNT = 6
-    WRAP_BRIDGE_MARGIN_STEPS = 8
 
     def __init__(self):
         super().__init__("six_motor_driver")
@@ -250,6 +239,12 @@ class SixMotorDriver(Node):
         )
         if not candidates:
             raise RuntimeError("Kein serieller ST3215-Port gefunden")
+        if len(candidates) > 1:
+            raise RuntimeError(
+                "Mehrere serielle Ports gefunden: "
+                f"{', '.join(candidates)}. Den Arm-Port explizit mit "
+                "dem ROS-Parameter 'port' angeben."
+            )
         return candidates[0]
 
     def _enable_all(self, speed: int):
@@ -444,56 +439,6 @@ class SixMotorDriver(Node):
         high = max(start_progress, target_progress)
         return low < wrap_progress < high
 
-    def _bridge_sensor_wrap_if_needed(
-        self,
-        index: int,
-        target_progress: int,
-        speed: int,
-        timeout: float,
-    ) -> int:
-        calibration = self.calibrations[index]
-        servo_id = self.servo_ids[index]
-        start_raw = self._read_one_raw(index)
-        start_progress = calibration.progress_steps(start_raw)
-        if not self.bridge_sensor_wrap:
-            return start_raw
-        if not self._crosses_sensor_wrap(
-            calibration,
-            start_progress,
-            target_progress,
-        ):
-            return start_raw
-
-        wrap_progress = STEPS_PER_REVOLUTION - calibration.lower_steps
-        direction = 1 if target_progress > start_progress else -1
-        margin = self.WRAP_BRIDGE_MARGIN_STEPS
-        if direction > 0:
-            bridge_progress = min(target_progress, wrap_progress + margin)
-        else:
-            bridge_progress = max(target_progress, wrap_progress - margin)
-        bridge_raw = self._raw_for_progress(calibration, bridge_progress)
-        rotate_speed = max(60, min(abs(speed), self.max_speed))
-        rotate_command = rotate_speed if direction > 0 else -rotate_speed
-
-        self.get_logger().warning(
-            f"Servo ID {servo_id}: Sensor-Nullübergang wird per "
-            f"Rotationsmodus überbrückt ({start_raw} -> {bridge_raw})"
-        )
-        self._rotate_across_wrap_with_retry(
-            index,
-            bridge_progress,
-            direction,
-            rotate_command,
-            min(timeout, 4.0),
-        )
-
-        actual = self._return_to_position_mode_holding_current(index, speed)
-        self.get_logger().info(
-            f"Servo ID {servo_id}: Übergang passiert, aktuelle Position "
-            f"{actual} als neues Halteziel gesetzt"
-        )
-        return actual
-
     def _rotate_to_raw_across_sensor_wrap(
         self,
         index: int,
@@ -536,41 +481,6 @@ class SixMotorDriver(Node):
                 f"Halteposition {actual}"
             )
 
-    def _rotate_across_wrap_with_retry(
-        self,
-        index: int,
-        bridge_progress: int,
-        direction: int,
-        rotate_command: int,
-        timeout: float,
-    ):
-        try:
-            self._rotate_until_progress(
-                index,
-                bridge_progress,
-                direction,
-                rotate_command,
-                timeout,
-            )
-            return
-        except RuntimeError as error:
-            servo_id = self.servo_ids[index]
-            self.get_logger().warning(
-                f"Servo ID {servo_id}: erster Rotationsversuch am "
-                f"Sensorübergang fehlgeschlagen ({error}); versuche "
-                "Gegenrichtung"
-            )
-            with self.io_lock:
-                self.servo.StopServo(servo_id)
-            time.sleep(0.05)
-            self._rotate_until_progress(
-                index,
-                bridge_progress,
-                direction,
-                -rotate_command,
-                timeout,
-            )
-
     def _rotate_to_progress_with_retry(
         self,
         index: int,
@@ -604,44 +514,6 @@ class SixMotorDriver(Node):
                 -rotate_command,
                 timeout,
             )
-
-    def _rotate_until_progress(
-        self,
-        index: int,
-        bridge_progress: int,
-        direction: int,
-        rotate_command: int,
-        timeout: float,
-    ):
-        calibration = self.calibrations[index]
-        servo_id = self.servo_ids[index]
-        with self.io_lock:
-            if self.servo.SetMode(servo_id, 1) is None:
-                raise RuntimeError("Rotationsmodus fehlgeschlagen")
-            if self.servo.Rotate(servo_id, rotate_command) is None:
-                raise RuntimeError("Rotationsbefehl fehlgeschlagen")
-
-        deadline = time.monotonic() + timeout
-        last_progress = calibration.progress_steps(self.last_raw[index])
-        wrong_direction_count = 0
-        while time.monotonic() < deadline:
-            actual = self._read_one_raw(index)
-            progress = calibration.progress_steps(actual)
-            if direction > 0 and progress >= bridge_progress:
-                return
-            if direction < 0 and progress <= bridge_progress:
-                return
-            if direction > 0 and progress + 2 < last_progress:
-                wrong_direction_count += 1
-            elif direction < 0 and progress - 2 > last_progress:
-                wrong_direction_count += 1
-            else:
-                wrong_direction_count = 0
-            if wrong_direction_count >= 5:
-                raise RuntimeError("Rotationsrichtung wirkt falsch")
-            last_progress = progress
-            time.sleep(0.02)
-        raise RuntimeError("Sensor-Nullübergang nicht erreicht")
 
     def _rotate_until_target_progress(
         self,
@@ -1020,6 +892,16 @@ class SixMotorDriver(Node):
             return GoalResponse.REJECT
         if not request.trajectory.points:
             return GoalResponse.REJECT
+        point_times = [
+            point.time_from_start.sec
+            + point.time_from_start.nanosec / 1e9
+            for point in request.trajectory.points
+        ]
+        try:
+            validate_time_from_start(point_times)
+        except ValueError as error:
+            self.get_logger().error(str(error))
+            return GoalResponse.REJECT
         requested_limits = [
             self.angle_limits[index] for index in requested_indices
         ]
@@ -1047,6 +929,8 @@ class SixMotorDriver(Node):
             requested_calibrations = [
                 self.calibrations[index] for index in requested_indices
             ]
+            trajectory_started = time.monotonic()
+            previous_requested_time = 0.0
             for point in goal_handle.request.trajectory.points:
                 if goal_handle.is_cancel_requested:
                     self._hold_active_servos_at_current_positions(
@@ -1062,25 +946,75 @@ class SixMotorDriver(Node):
                         point.positions,
                     )
                 ]
-                duration = (
+                requested_time = (
                     point.time_from_start.sec
                     + point.time_from_start.nanosec / 1e9
                 )
-                movement_timeout = max(self.timeout, duration + 2.0)
+                segment_duration = requested_time - previous_requested_time
+                current_raw = self._read_raw()
+                start_progress = [
+                    calibration.progress_steps(current_raw[index])
+                    for index, calibration in zip(
+                        requested_indices,
+                        requested_calibrations,
+                    )
+                ]
+                target_progress = [
+                    calibration.progress_steps(target)
+                    for calibration, target in zip(
+                        requested_calibrations,
+                        targets,
+                    )
+                ]
+                segment_speed = (
+                    self.max_speed
+                    if segment_duration == 0.0
+                    else segment_speed_steps_s(
+                        start_progress,
+                        target_progress,
+                        segment_duration,
+                        self.max_speed,
+                    )
+                )
+                movement_timeout = max(0.5, segment_duration + 0.5)
+                self.get_logger().info(
+                    f"Trajektoriensegment: {segment_duration:.2f} s, "
+                    f"Geschwindigkeit {segment_speed} Schritte/s"
+                )
                 if len(requested_indices) == 1:
                     self._move_one_to_raw(
                         requested_indices[0],
                         targets[0],
-                        self.max_speed,
+                        segment_speed,
                         movement_timeout,
                     )
                 else:
                     self._move_to_raw(
                         requested_indices,
                         targets,
-                        self.max_speed,
+                        segment_speed,
                         movement_timeout,
                     )
+                deadline = trajectory_started + requested_time
+                finished_at = time.monotonic()
+                if finished_at > deadline + 0.5:
+                    raise RuntimeError(
+                        f"Trajektoriensegment verfehlte time_from_start "
+                        f"um {finished_at - deadline:.2f} s"
+                    )
+                while time.monotonic() < deadline:
+                    if goal_handle.is_cancel_requested:
+                        self._hold_active_servos_at_current_positions(
+                            self.center_speed
+                        )
+                        goal_handle.canceled()
+                        result.error_code = (
+                            FollowJointTrajectory.Result.SUCCESSFUL
+                        )
+                        return result
+                    remaining = max(0.0, deadline - time.monotonic())
+                    time.sleep(min(0.02, remaining))
+                previous_requested_time = requested_time
             result.error_code = FollowJointTrajectory.Result.SUCCESSFUL
             goal_handle.succeed()
             return result
@@ -1093,7 +1027,9 @@ class SixMotorDriver(Node):
                 self.get_logger().error(
                     f"Halteposition nach Fehler fehlgeschlagen: {hold_error}"
                 )
-            result.error_code = FollowJointTrajectory.Result.INVALID_GOAL
+            result.error_code = (
+                FollowJointTrajectory.Result.GOAL_TOLERANCE_VIOLATED
+            )
             result.error_string = str(error)
             goal_handle.abort()
             return result

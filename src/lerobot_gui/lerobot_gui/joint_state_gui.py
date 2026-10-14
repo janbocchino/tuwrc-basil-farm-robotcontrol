@@ -19,6 +19,13 @@ from sensor_msgs.msg import JointState
 from tf2_ros import Buffer, TransformException, TransformListener
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
+from .control_validation import (
+    JOINT_LIMITS,
+    validate_duration,
+    validate_joint_targets,
+)
+from .joint_state_store import JointStateStore
+
 
 ARM_JOINTS = {"1", "2", "3", "4", "5"}
 GRIPPER_JOINTS = {"6"}
@@ -41,16 +48,6 @@ RAIL_ACTION_NAME = "/rail_controller/follow_joint_trajectory"
 HOME_POSE = {
     "x": -0.0094, "y": -0.3675, "z": 0.2819,
     "roll": 90.0, "pitch": 0.0, "yaw": 0.0,
-}
-
-# Measured URDF limits from Max's so101_base.xacro (degrees for revolute joints).
-JOINT_LIMITS_DEG = {
-    "1": (-118.48, 118.48),
-    "2": (-106.17, 106.17),
-    "3": (-96.68, 96.77),
-    "4": (-103.53, 103.53),
-    "5": (-165.76, 165.76),
-    "6": (-10.64, 116.45),
 }
 
 HTML_PAGE = """<!doctype html>
@@ -256,11 +253,7 @@ HTML_PAGE = """<!doctype html>
   <script>
     const JOINT_ORDER  = ["rail_joint", "1", "2", "3", "4", "5", "6"];
     const LINEAR_JOINTS = new Set(["rail_joint"]);   // prismatic, values in meters
-    const JOINT_LIMITS = {
-      "rail_joint": [0.0, 0.715],
-      "1": [-118.48, 118.48], "2": [-106.17, 106.17], "3": [-96.68, 96.77],
-      "4": [-103.53, 103.53], "5": [-165.76, 165.76], "6": [-10.64, 116.45],
-    };
+    const JOINT_LIMITS = __JOINT_LIMITS__;
     const modeLineEl = document.getElementById("mode-line");
 
     const statusEl   = document.getElementById("status");
@@ -482,53 +475,6 @@ HTML_PAGE = """<!doctype html>
 """
 
 
-class JointStateStore:
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._latest = None
-
-    def update(self, message: JointState):
-        joints = []
-        for index, name in enumerate(message.name):
-            position = self._value_at(message.position, index)
-            velocity = self._value_at(message.velocity, index)
-            effort   = self._value_at(message.effort,   index)
-            joints.append({
-                "name":         name,
-                "position":     position,
-                "position_deg": math.degrees(position) if position is not None else None,
-                "velocity":     velocity,
-                "effort":       effort,
-            })
-        with self._lock:
-            self._latest = {"received_at": time.time(), "joints": joints}
-
-    def snapshot(self):
-        with self._lock:
-            if self._latest is None:
-                return None
-            s = dict(self._latest)
-            s["age_ms"] = int((time.time() - s["received_at"]) * 1000)
-            return s
-
-    def joint_positions(self):
-        with self._lock:
-            if self._latest is None:
-                return {}
-            return {
-                joint["name"]: joint["position"]
-                for joint in self._latest["joints"]
-                if joint["position"] is not None
-            }
-
-    @staticmethod
-    def _value_at(values, index):
-        if index >= len(values):
-            return None
-        v = float(values[index])
-        return None if math.isnan(v) else v
-
-
 class JointStateNode(Node):
     def __init__(self, store: JointStateStore, mode: str = "view"):
         super().__init__("joint_state_gui")
@@ -562,7 +508,7 @@ class JointStateNode(Node):
             "controllers_ready": arm_ready and rail_ready,
             "last_error": self._last_error,
             "note": (
-                "Rail motion is disabled in hardware mode."
+                "Hardware rail goals require a successful rail calibration."
                 if self._mode == "hardware"
                 else "View mode uses mock controllers."
             ),
@@ -731,8 +677,8 @@ def make_request_handler(store: JointStateStore, node: JointStateNode):
                 try:
                     length = int(self.headers.get("Content-Length", 0))
                     body = json.loads(self.rfile.read(length))
-                    joints_in  = body.get("joints", {})
-                    duration   = float(body.get("duration", 2.0))
+                    joints_in = validate_joint_targets(body.get("joints", {}))
+                    duration = validate_duration(body.get("duration", 2.0))
                     joints_rad = {
                         k: (float(v) if k in LINEAR_JOINTS else math.radians(float(v)))
                         for k, v in joints_in.items()
@@ -746,7 +692,7 @@ def make_request_handler(store: JointStateStore, node: JointStateNode):
                     length = int(self.headers.get("Content-Length", 0))
                     body = json.loads(self.rfile.read(length))
                     pose = body.get("pose", {})
-                    duration = float(body.get("duration", 2.0))
+                    duration = validate_duration(body.get("duration", 2.0))
                     node.send_pose_trajectory(pose, duration)
                     self._json({"ok": True})
                 except Exception as exc:
@@ -759,6 +705,7 @@ def make_request_handler(store: JointStateStore, node: JointStateNode):
 
         def _send_html(self):
             page = HTML_PAGE.replace("__HOME_POSE__", json.dumps(HOME_POSE))
+            page = page.replace("__JOINT_LIMITS__", json.dumps(JOINT_LIMITS))
             body = page.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -772,14 +719,19 @@ def make_request_handler(store: JointStateStore, node: JointStateNode):
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "keep-alive")
             self.end_headers()
-            while True:
-                snapshot = store.snapshot()
-                if snapshot is not None:
-                    snapshot["end_effector_pose"] = node.end_effector_pose()
-                    snapshot["status"] = node.status_info()
-                    self.wfile.write(f"data: {json.dumps(snapshot)}\n\n".encode("utf-8"))
-                    self.wfile.flush()
-                time.sleep(0.1)
+            try:
+                while True:
+                    snapshot = store.snapshot()
+                    if snapshot is not None:
+                        snapshot["end_effector_pose"] = node.end_effector_pose()
+                        snapshot["status"] = node.status_info()
+                        self.wfile.write(
+                            f"data: {json.dumps(snapshot)}\n\n".encode("utf-8")
+                        )
+                        self.wfile.flush()
+                    time.sleep(0.1)
+            except (BrokenPipeError, ConnectionResetError):
+                return
 
         def _json(self, data, status=200):
             body = json.dumps(data).encode("utf-8")
@@ -851,7 +803,7 @@ def main(argv=None):
         "--mode",
         choices=["view", "hardware"],
         default="view",
-        help="view: mock controllers; hardware: real arm + fixed rail",
+        help="view: mock controllers; hardware: real arm + calibrated real rail",
     )
     args = parser.parse_args(cleaned[1:])
 

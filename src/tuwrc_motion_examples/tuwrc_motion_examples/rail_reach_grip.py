@@ -17,13 +17,13 @@ from .leaf_pick_imitation import (
     ARM_JOINTS,
     GRIPPER_CLOSED,
     GRIPPER_OPEN,
-    JOINT_LIMITS,
     RAIL_JOINT,
     LeafPickImitation,
     _arm,
     clamp,
     scale_arm_pose,
 )
+from .limits import JOINT_LIMITS
 
 # Forward reach with open jaws, close on the object, pull back holding it.
 GRIP_SEQUENCE: list[tuple[str, dict[str, float], float]] = [

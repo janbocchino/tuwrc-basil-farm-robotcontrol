@@ -15,6 +15,8 @@ ROBOT_LAUNCH = ROOT / "src/tuwrc_bringup/launch/robot.launch.py"
 PACKAGE_XML = ROOT / "src/tuwrc_bringup/package.xml"
 RUNNER = ROOT / "tools/run"
 REPOS = ROOT / "dependencies/orbbec.repos"
+CAMERA_URDF = ROOT / "src/lerobot_description/urdf/gemini2_camera.xacro"
+ROBOT_URDF = ROOT / "src/lerobot_description/urdf/so101_base.xacro"
 
 
 def fail(message: str) -> None:
@@ -32,6 +34,8 @@ def main() -> None:
     camera_launch = CAMERA_LAUNCH.read_text(encoding="utf-8")
     robot_launch = ROBOT_LAUNCH.read_text(encoding="utf-8")
     runner = RUNNER.read_text(encoding="utf-8")
+    camera_urdf = CAMERA_URDF.read_text(encoding="utf-8")
+    robot_urdf = ROBOT_URDF.read_text(encoding="utf-8")
 
     # Syntax checks do not require ROS Python packages to be installed.
     ast.parse(camera_launch, filename=str(CAMERA_LAUNCH))
@@ -50,6 +54,29 @@ def main() -> None:
     )
     if "gazebo" in camera_launch.lower() or "ros_gz" in camera_launch:
         fail("physical camera launch must not depend on Gazebo")
+
+    require_tokens(
+        camera_urdf,
+        (
+            'link name="camera_link"',
+            'joint name="gripper_to_camera" type="fixed"',
+            '<parent link="${parent}"',
+            '<child link="camera_link"',
+            '<box size="0.025 0.090 0.030"',
+        ),
+        "Gemini 2 model",
+    )
+    require_tokens(
+        robot_urdf,
+        (
+            "gemini2_camera.xacro",
+            "camera_mount_x",
+            "camera_mount_y",
+            "camera_mount_z",
+            'parent="gripper"',
+        ),
+        "robot camera mount",
+    )
 
     require_tokens(
         robot_launch,

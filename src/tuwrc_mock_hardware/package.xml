@@ -3,7 +3,7 @@
 <package format="3">
   <name>tuwrc_mock_hardware</name>
   <version>0.1.0</version>
-  <description>View-mode mock controllers and hardware-mode rail hold for the TUWRC robot.</description>
+  <description>View-mode mock controllers and the Arduino rail driver for the TUWRC robot.</description>
   <maintainer email="team@tuwrc.local">TUWRC Team</maintainer>
   <license>Apache-2.0</license>
 
@@ -11,6 +11,7 @@
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>control_msgs</exec_depend>
+  <exec_depend>python3-serial</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>trajectory_msgs</exec_depend>
   <exec_depend>builtin_interfaces</exec_depend>

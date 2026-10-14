@@ -5,24 +5,11 @@ from __future__ import annotations
 
 import argparse
 import glob
-import sys
-from pathlib import Path
+
+from .st3215_import import load_st3215
 
 
-def import_st3215():
-    try:
-        from st3215 import ST3215
-        return ST3215
-    except ImportError:
-        local_library = Path.home() / "libs" / "python-st3215"
-        if local_library.is_dir():
-            sys.path.insert(0, str(local_library))
-            from st3215 import ST3215
-            return ST3215
-        raise
-
-
-ST3215 = import_st3215()
+ST3215 = load_st3215()
 
 
 def find_port(configured_port: str) -> str:

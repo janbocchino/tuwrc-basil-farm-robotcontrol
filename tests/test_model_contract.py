@@ -11,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 URDF = ROOT / "src/lerobot_description/urdf/so101_base.xacro"
-CAMERA_URDF = ROOT / "src/lerobot_description/urdf/gemini2_camera.xacro"
 SRDF = ROOT / "src/six_motor_moveit_config/config/so101.srdf"
 LIMITS = ROOT / "src/six_motor_moveit_config/config/joint_limits.yaml"
 CALIB = ROOT / "src/six_motor_driver/config/six_motor_calibration.yaml"
@@ -24,7 +23,6 @@ def fail(message: str) -> None:
 
 def main() -> None:
     ET.parse(URDF)
-    ET.parse(CAMERA_URDF)
     text = URDF.read_text(encoding="utf-8")
     for token in (
         'name="rail_joint"',
@@ -32,14 +30,6 @@ def main() -> None:
         'name="carriage_link"',
         'name="rail_link"',
         'rail_mount_x',
-        'camera_mount_x',
-        'camera_mount_y',
-        'camera_mount_z',
-        'camera_mount_roll',
-        'camera_mount_pitch',
-        'camera_mount_yaw',
-        'parent="gripper"',
-        "gemini2_camera.xacro",
         'filename="package://lerobot_description/meshes/rail/rail.stl"',
         'filename="package://lerobot_description/meshes/rail/plate.stl"',
     ):
@@ -56,22 +46,11 @@ def main() -> None:
     if 'parent link="carriage_link"' not in text:
         fail("base_joint parent carriage_link missing")
 
-    camera = CAMERA_URDF.read_text(encoding="utf-8")
-    for token in (
-        'link name="camera_link"',
-        'joint name="gripper_to_camera" type="fixed"',
-        '<parent link="${parent}"',
-        '<child link="camera_link"',
-        '<box size="0.025 0.090 0.030"',
-    ):
-        if token not in camera:
-            fail(f"Gemini 2 model missing expected token: {token}")
-
     srdf = SRDF.read_text(encoding="utf-8")
-    if 'base_link="rail_link"' not in srdf or 'tip_link="tcp"' not in srdf:
-        fail("SRDF arm chain must be rail_link → tcp")
-    if 'name="rail_joint"' not in srdf:
-        fail("SRDF must mention rail_joint")
+    if 'base_link="world"' not in srdf or 'tip_link="tcp"' not in srdf:
+        fail("SRDF arm chain must be world → tcp")
+    if 'name="rail_joint"' not in srdf or 'group="arm"' not in srdf:
+        fail("SRDF arm group must include rail_joint")
 
     limits = LIMITS.read_text(encoding="utf-8")
     if "rail_joint:" not in limits:

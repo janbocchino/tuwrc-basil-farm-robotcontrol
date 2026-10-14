@@ -14,12 +14,11 @@ setup(
     zip_safe=True,
     maintainer="TUWRC Team",
     maintainer_email="team@tuwrc.local",
-    description="View-mode mock controllers and hardware-mode rail hold.",
+    description="View-mode mock controllers and the hardware rail driver.",
     license="Apache-2.0",
     entry_points={
         "console_scripts": [
             "mock_hardware = tuwrc_mock_hardware.mock_hardware:main",
-            "rail_hold = tuwrc_mock_hardware.rail_hold:main",
             "rail_driver = tuwrc_mock_hardware.rail_driver:main",
         ],
     },

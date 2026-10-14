@@ -14,8 +14,10 @@ Before opening a PR:
 
 1. `python3 tests/test_model_contract.py`
 2. `python3 tests/test_gui_actions_contract.py`
-3. On Ubuntu/Jazzy (or in Docker): `colcon build --symlink-install`
-4. Smoke-test view mode with `./tools/run --mode view`
+3. `python3 tests/test_camera_contract.py`
+4. `python3 tests/test_runtime_helpers.py`
+5. On Ubuntu/Jazzy (or in Docker): `colcon build --symlink-install`
+6. Smoke-test view mode with `./tools/run --mode view`
 
 PR description should say:
 

@@ -24,8 +24,8 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="max",
-    maintainer_email="max@example.com",
+    maintainer="TUWRC Team",
+    maintainer_email="team@tuwrc.local",
     description="ROS 2 driver and passive position reader for ST3215 servos",
     license="Apache-2.0",
     entry_points={
@@ -36,7 +36,6 @@ setup(
             "show_six_positions = six_motor_driver.show_six_positions:main",
             "six_motor_driver = six_motor_driver.six_motor_driver:main",
             "six_motor_position_reader = six_motor_driver.six_motor_position_reader:main",
-            "st3215_driver = six_motor_driver.st3215_driver:main",
         ],
     },
 )

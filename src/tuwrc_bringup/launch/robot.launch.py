@@ -1,4 +1,4 @@
-"""Unified bringup for view (mock) and hardware (real arm + rail hold) modes."""
+"""Unified bringup for view (mock) and hardware (real arm + rail) modes."""
 
 from pathlib import Path
 
@@ -45,9 +45,7 @@ def launch_setup(context):
 
     urdf_file = desc_share / "urdf" / "so101_base.xacro"
     calibration = driver_share / "config" / "six_motor_calibration.yaml"
-    controller_file = (
-        "config/controllers.yaml" if mode == "view" else "config/controllers_real.yaml"
-    )
+    controller_file = "config/controllers.yaml"
     rviz_config = (
         moveit_share / "config" / "moveit.rviz"
         if use_moveit
@@ -188,7 +186,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "mode",
                 default_value="view",
-                description="view (mock) or hardware (real arm + fixed rail)",
+                description="view (mock) or hardware (real arm + real rail)",
             ),
             DeclareLaunchArgument("use_rviz", default_value="true"),
             DeclareLaunchArgument("use_moveit", default_value="true"),

@@ -8,6 +8,7 @@ Talks to firmware/rail_stepper. Position is measured from the left end
 
 from __future__ import annotations
 
+import queue
 import threading
 import time
 
@@ -15,17 +16,21 @@ import rclpy
 import serial
 from control_msgs.action import FollowJointTrajectory
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool, Float64
 from std_srvs.srv import Trigger
+
+from .rail_protocol import RailStatus, parse_status_line
 
 
 class RailDriverNode(Node):
     def __init__(self):
         super().__init__("tuwrc_rail_driver")
 
-        self.declare_parameter("port", "/dev/ttyUSB0")
+        self.declare_parameter("port", "/dev/ttyUSB1")
         self.declare_parameter("baud", 115200)
         # Measured: 1000 steps = 1 cm.
         self.declare_parameter("steps_per_meter", 100000.0)
@@ -54,12 +59,16 @@ class RailDriverNode(Node):
         self._length_tolerance_m = float(self.get_parameter("length_tolerance_m").value)
 
         self._lock = threading.Lock()
+        self._write_lock = threading.Lock()
+        self._operation_lock = threading.Lock()
+        self._callbacks = ReentrantCallbackGroup()
         self._pos_steps = 0  # from the Arduino's ST lines
         self._homed = False
         self._length_steps: int | None = None  # set by a successful ~/calibrate
         self._move_done = threading.Event()
         self._calibration_done = threading.Event()
         self._calibration_result = ""
+        self._status_queue: queue.Queue[RailStatus] = queue.Queue(maxsize=1)
 
         self._serial = serial.Serial(port, baud, timeout=1.0)
         time.sleep(2.0)  # Arduino resets on connect — wait for it
@@ -82,6 +91,11 @@ class RailDriverNode(Node):
         self._reader_running = True
         self._reader = threading.Thread(target=self._read_serial, daemon=True)
         self._reader.start()
+        self.create_timer(
+            0.02,
+            self._publish_latest_status,
+            callback_group=self._callbacks,
+        )
 
         self._server = ActionServer(
             self,
@@ -90,8 +104,14 @@ class RailDriverNode(Node):
             execute_callback=self._execute,
             goal_callback=self._accept_goal,
             cancel_callback=lambda _: CancelResponse.ACCEPT,
+            callback_group=self._callbacks,
         )
-        self.create_service(Trigger, "~/calibrate", self._calibrate)
+        self.create_service(
+            Trigger,
+            "~/calibrate",
+            self._calibrate,
+            callback_group=self._callbacks,
+        )
         self.get_logger().warn(
             f"Rail driver ready. steps_per_meter={self._steps_per_meter:.0f}. "
             "Rail is NOT calibrated: call ~/calibrate before moving it."
@@ -110,8 +130,9 @@ class RailDriverNode(Node):
             line = raw.decode(errors="replace").strip()
             if not line:
                 continue
-            if line.startswith("ST "):
-                self._on_status(line[3:].split())
+            status = parse_status_line(line)
+            if status is not None:
+                self._on_status(status)
                 continue
             self.get_logger().info(f"Arduino: {line}")
             if line.startswith("Calibrated") or line.startswith("Calibration failed"):
@@ -120,20 +141,33 @@ class RailDriverNode(Node):
             elif "Target reached" in line or "Stopped" in line:
                 self._move_done.set()
 
-    def _on_status(self, values: list[str]):
-        if len(values) != 4:
-            return
+    def _on_status(self, status: RailStatus):
         try:
-            pos_steps = int(values[2])
-        except ValueError:
-            return
-        with self._lock:
-            self._pos_steps = pos_steps
-            self._homed = values[3] == "1"
-        pos_m = pos_steps / self._steps_per_meter
+            self._status_queue.put_nowait(status)
+        except queue.Full:
+            try:
+                self._status_queue.get_nowait()
+            except queue.Empty:
+                pass
+            self._status_queue.put_nowait(status)
 
-        self._lm_left_pub.publish(Bool(data=values[0] == "1"))
-        self._lm_right_pub.publish(Bool(data=values[1] == "1"))
+    def _publish_latest_status(self):
+        status = None
+        while True:
+            try:
+                status = self._status_queue.get_nowait()
+            except queue.Empty:
+                break
+        if status is None:
+            return
+
+        with self._lock:
+            self._pos_steps = status.position_steps
+            self._homed = status.homed
+        pos_m = status.position_steps / self._steps_per_meter
+
+        self._lm_left_pub.publish(Bool(data=status.lm_left))
+        self._lm_right_pub.publish(Bool(data=status.lm_right))
         self._position_cm_pub.publish(Float64(data=pos_m * 100.0))
         msg = JointState()
         msg.header.stamp = self.get_clock().now().to_msg()
@@ -142,7 +176,8 @@ class RailDriverNode(Node):
         self._js_pub.publish(msg)
 
     def _send(self, cmd: str):
-        self._serial.write((cmd + "\n").encode())
+        with self._write_lock:
+            self._serial.write((cmd + "\n").encode())
 
     def _is_calibrated(self) -> bool:
         with self._lock:
@@ -151,6 +186,16 @@ class RailDriverNode(Node):
     # ------------------------------------------------------------------ ROS
 
     def _calibrate(self, _request, response):
+        if not self._operation_lock.acquire(blocking=False):
+            response.success = False
+            response.message = "Rail is busy executing another operation"
+            return response
+        try:
+            return self._run_calibration(response)
+        finally:
+            self._operation_lock.release()
+
+    def _run_calibration(self, response):
         self.get_logger().info(
             "Calibrating rail: lm_left → lm_right → middle → 0 (lm_left) …"
         )
@@ -199,7 +244,11 @@ class RailDriverNode(Node):
     def _accept_goal(self, goal_request):
         if list(goal_request.trajectory.joint_names) != ["rail_joint"]:
             return GoalResponse.REJECT
+        if not self._operation_lock.acquire(blocking=False):
+            self.get_logger().error("Rail goal rejected: rail is busy.")
+            return GoalResponse.REJECT
         if not self._is_calibrated():
+            self._operation_lock.release()
             self.get_logger().error(
                 "Rail goal rejected: not calibrated. Call "
                 "/tuwrc_rail_driver/calibrate first."
@@ -208,6 +257,12 @@ class RailDriverNode(Node):
         return GoalResponse.ACCEPT
 
     def _execute(self, goal_handle):
+        try:
+            return self._run_trajectory(goal_handle)
+        finally:
+            self._operation_lock.release()
+
+    def _run_trajectory(self, goal_handle):
         result = FollowJointTrajectory.Result()
         trajectory = goal_handle.request.trajectory
         with self._lock:
@@ -268,11 +323,14 @@ class RailDriverNode(Node):
 def main():
     rclpy.init()
     node = RailDriverNode()
+    executor = MultiThreadedExecutor(num_threads=2)
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         pass
     finally:
+        executor.shutdown()
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

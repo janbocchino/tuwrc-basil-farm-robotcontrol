@@ -2,7 +2,7 @@
 """Imitate a front reach + leaf pick/cut using the parallel-jaw gripper.
 
 No cutter tool is modeled: joint 6 open/close stands in for the snip.
-Optional rail advance works in view mode only (hardware rail is held at 0).
+Hardware rail motion requires calibration plus the normal hardware confirmation.
 """
 
 from __future__ import annotations
@@ -19,21 +19,13 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
+from .limits import JOINT_LIMITS
+
 
 ARM_ACTION = "/six_motor_controller/follow_joint_trajectory"
 RAIL_ACTION = "/rail_controller/follow_joint_trajectory"
 ARM_JOINTS = ["1", "2", "3", "4", "5", "6"]
 RAIL_JOINT = "rail_joint"
-
-JOINT_LIMITS = {
-    "rail_joint": (0.0, 0.715),  # 0 = left end (lm_left)
-    "1": (-2.06780610, 2.06780610),
-    "2": (-1.85304879, 1.85304879),
-    "3": (-1.68737887, 1.68891285),
-    "4": (-1.80702937, 1.80702937),
-    "5": (-2.89308777, 2.89308777),
-    "6": (-0.18561168, 2.03252454),
-}
 
 # Larger jaw values ≈ open on the measured SO-101 calibration.
 GRIPPER_OPEN = 1.25
@@ -172,7 +164,7 @@ def main(argv=None):
         action="store_true",
         help=(
             f"Advance rail_joint to {DEFAULT_RAIL_M} m before the arm sequence "
-            "(view mode only; hardware rail hold rejects non-zero targets)."
+            "(calibrate the rail first in hardware mode)."
         ),
     )
     parser.add_argument(
@@ -211,13 +203,6 @@ def main(argv=None):
     if not JOINT_LIMITS[RAIL_JOINT][0] <= args.rail_m <= JOINT_LIMITS[RAIL_JOINT][1]:
         print("--rail-m must be within 0–0.715 m.", file=sys.stderr)
         return 2
-    if args.move_rail and args.hardware:
-        print(
-            "Refusing --move-rail with --hardware: physical rail motion is disabled.",
-            file=sys.stderr,
-        )
-        return 2
-
     rclpy.init()
     node = LeafPickImitation()
     try:

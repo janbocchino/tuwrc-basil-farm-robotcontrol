@@ -4,7 +4,7 @@ project(six_motor_moveit_config)
 find_package(ament_cmake REQUIRED)
 
 install(
-  DIRECTORY config launch
+  DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
 )
 
