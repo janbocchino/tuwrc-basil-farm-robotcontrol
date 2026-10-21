@@ -1,0 +1,60 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /MotionPlanning1
+  - Class: rviz_common/Help
+    Name: Help
+  - Class: rviz_common/Views
+    Name: Views
+
+Visualization Manager:
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Value: true
+    - Class: moveit_rviz_plugin/MotionPlanning
+      Name: MotionPlanning
+      Planned Path:
+        # Looping replayed the last plan forever at 20 fps, redrawing the whole
+        # robot on the CPU with nothing on screen to say it was still running.
+        # The trajectory still animates once when a plan arrives.
+        Loop Animation: false
+        State Display Time: 0.05 s
+        Trajectory Topic: display_planned_path
+      Planning Scene Topic: monitored_planning_scene
+      Robot Description: robot_description
+      Scene Geometry:
+        Scene Alpha: 1
+      Scene Robot:
+        Robot Alpha: 0.7
+      Value: true
+  Global Options:
+    Fixed Frame: world
+    # RViz redraws at this rate whether or not anything moved and whether or
+    # not anyone is connected to noVNC. On the CPU renderer used in Docker the
+    # default of 30 keeps ~3 cores busy at idle; 10 is still smooth for
+    # watching the arm and cuts that roughly threefold.
+    Frame Rate: 10
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 0.8
+      Focal Point:
+        X: 0.10
+        Y: 0.0
+        Z: 0.05
+      Name: Current View
+      Pitch: 0.45
+      Target Frame: world
+      Yaw: 0.75
+
+Window Geometry:
+  Height: 900
+  Width: 1300

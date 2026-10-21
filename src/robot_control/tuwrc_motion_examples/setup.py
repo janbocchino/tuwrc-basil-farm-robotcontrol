@@ -1,0 +1,28 @@
+from setuptools import setup
+
+package_name = "tuwrc_motion_examples"
+
+setup(
+    name=package_name,
+    version="0.1.0",
+    packages=[package_name],
+    data_files=[
+        ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
+        (f"share/{package_name}", ["package.xml"]),
+    ],
+    install_requires=["setuptools"],
+    zip_safe=True,
+    maintainer="TUWRC Team",
+    maintainer_email="team@tuwrc.local",
+    description="Safe bounded motion examples for the TUWRC robot.",
+    license="Apache-2.0",
+    entry_points={
+        "console_scripts": [
+            "small_arm_motion = tuwrc_motion_examples.small_arm_motion:main",
+            "leaf_pick_imitation = tuwrc_motion_examples.leaf_pick_imitation:main",
+            "rail_reach_grip = tuwrc_motion_examples.rail_reach_grip:main",
+            "arm_reach_grip = tuwrc_motion_examples.arm_reach_grip:main",
+            "go_home = tuwrc_motion_examples.go_home:main",
+        ],
+    },
+)

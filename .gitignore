@@ -4,6 +4,9 @@ install/
 log/
 .colcon/
 
+# Third-party ROS sources imported via dependencies/*.repos
+src/perception/OrbbecSDK_ROS2/
+
 # Python
 __pycache__/
 *.py[cod]

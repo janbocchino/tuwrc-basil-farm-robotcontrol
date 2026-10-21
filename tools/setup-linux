@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# Idempotent Ubuntu 24.04 setup for the TUWRC ROS 2 workspace.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROFILE=""
+DRY_RUN=false
+CHECK_ONLY=false
+ASSUME_YES=false
+
+usage() {
+  cat <<'EOF'
+Usage: ./tools/setup-linux --view|--hardware [--check|--dry-run] [--yes]
+
+Profiles:
+  --view       Native ROS 2 view mode (mock controllers)
+  --hardware   View dependencies plus serial access and the ST3215 library
+
+Options:
+  --check      Report whether the selected profile is ready; change nothing
+  --dry-run    Print setup commands without running them
+  --yes        Skip the confirmation prompt
+  -h, --help   Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --view) PROFILE="view"; shift ;;
+    --hardware) PROFILE="hardware"; shift ;;
+    --check) CHECK_ONLY=true; shift ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --yes) ASSUME_YES=true; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 2 ;;
+  esac
+done
+
+if [[ -z "$PROFILE" ]]; then
+  echo "Choose exactly one profile: --view or --hardware." >&2
+  usage
+  exit 2
+fi
+
+if [[ "$(uname -s)" != "Linux" || ! -r /etc/os-release ]]; then
+  echo "tools/setup-linux supports Ubuntu 24.04 only." >&2
+  exit 1
+fi
+
+# shellcheck disable=SC1091
+source /etc/os-release
+if [[ "${ID:-}" != "ubuntu" || "${VERSION_ID:-}" != "24.04" ]]; then
+  echo "Expected Ubuntu 24.04; found ${PRETTY_NAME:-unknown Linux}." >&2
+  exit 1
+fi
+
+check_setup() {
+  local missing=0
+  for command in git git-lfs colcon rosdep; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+      echo "MISSING: $command"
+      missing=1
+    fi
+  done
+  if [[ ! -r /opt/ros/jazzy/setup.bash ]]; then
+    echo "MISSING: ROS 2 Jazzy (/opt/ros/jazzy/setup.bash)"
+    missing=1
+  fi
+  if [[ "$PROFILE" == "hardware" ]]; then
+    if ! python3 -c "import st3215" >/dev/null 2>&1; then
+      echo "MISSING: Python package st3215"
+      missing=1
+    fi
+    if ! id -nG "$USER" | tr ' ' '\n' | grep -qx dialout; then
+      echo "MISSING: $USER is not in the dialout group"
+      missing=1
+    fi
+  fi
+  if [[ ! -r "$ROOT/install/setup.bash" ]]; then
+    echo "MISSING: built workspace install/setup.bash"
+    missing=1
+  fi
+  if [[ "$missing" -eq 0 ]]; then
+    echo "READY: Linux $PROFILE profile"
+  fi
+  return "$missing"
+}
+
+if [[ "$CHECK_ONLY" == "true" ]]; then
+  check_setup
+  exit $?
+fi
+
+run() {
+  printf '+'
+  printf ' %q' "$@"
+  printf '\n'
+  if [[ "$DRY_RUN" != "true" ]]; then
+    "$@"
+  fi
+}
+
+if [[ "$ASSUME_YES" != "true" && "$DRY_RUN" != "true" ]]; then
+  echo "This installs Ubuntu/ROS packages with sudo and builds the workspace."
+  read -r -p "Continue with the $PROFILE profile? [y/N] " answer
+  [[ "$answer" =~ ^[Yy]$ ]] || exit 0
+fi
+
+cd "$ROOT"
+
+run sudo apt-get update
+run sudo apt-get install -y \
+  curl git git-lfs python3-colcon-common-extensions python3-pip \
+  python3-rosdep python3-serial python3-yaml software-properties-common
+
+if [[ ! -r /opt/ros/jazzy/setup.bash ]]; then
+  run sudo add-apt-repository -y universe
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "+ install latest ros2-apt-source package for noble"
+  else
+    ros_apt_version="$(
+      curl -fsSL https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest |
+        python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])'
+    )"
+    run curl -fsSL -o /tmp/ros2-apt-source.deb \
+      "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ros_apt_version}/ros2-apt-source_${ros_apt_version}.noble_all.deb"
+    run sudo dpkg -i /tmp/ros2-apt-source.deb
+    run sudo apt-get update
+  fi
+fi
+
+run sudo apt-get install -y \
+  ros-jazzy-ros-base ros-jazzy-rviz2 ros-jazzy-xacro \
+  ros-jazzy-robot-state-publisher ros-jazzy-moveit \
+  ros-jazzy-control-msgs
+
+run git lfs install
+run git lfs pull
+
+if [[ "$PROFILE" == "hardware" ]]; then
+  if ! python3 -c "import st3215" >/dev/null 2>&1; then
+    run python3 -m pip install --user --break-system-packages \
+      -r "$ROOT/requirements-hardware.txt"
+  fi
+  if ! id -nG "$USER" | tr ' ' '\n' | grep -qx dialout; then
+    run sudo usermod -aG dialout "$USER"
+    echo "Log out and back in before using USB hardware."
+  fi
+fi
+
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo "+ source /opt/ros/jazzy/setup.bash"
+  echo "+ rosdep install --from-paths src --ignore-src -r -y --skip-keys orbbec_camera"
+  echo "+ colcon build --symlink-install"
+else
+  # shellcheck disable=SC1091
+  set +u
+  source /opt/ros/jazzy/setup.bash
+  set -u
+  if [[ ! -e /etc/ros/rosdep/sources.list.d/20-default.list ]]; then
+    run sudo rosdep init
+  fi
+  run rosdep update
+  run rosdep install --from-paths src --ignore-src -r -y \
+    --skip-keys orbbec_camera
+  run colcon build --symlink-install
+fi
+
+echo
+echo "Setup complete. Start with:"
+if [[ "$PROFILE" == "hardware" ]]; then
+  echo "  ./tools/run --mode hardware --runtime native --port <arm-by-id> --rail-port <rail-by-id>"
+else
+  echo "  ./tools/run --mode view --runtime native"
+fi
