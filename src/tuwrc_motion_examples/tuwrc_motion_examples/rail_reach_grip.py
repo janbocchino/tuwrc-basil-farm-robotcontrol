@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Drive the rail to a target, then do a forward reach + gripper close.
 
-Works in view mode and, with --allow-hardware, on the real arm + Arduino rail.
+Commands whichever arm and rail bringup is already running.
 On hardware, rail positions are measured from the left end (lm_left = 0 m)
 and the rail must be calibrated first (/tuwrc_rail_driver/calibrate).
 """
@@ -46,16 +46,6 @@ def main(argv=None):
         help="Rail target in metres; on hardware from the left end (0 = lm_left).",
     )
     parser.add_argument(
-        "--allow-hardware",
-        action="store_true",
-        help="Required confirmation when commanding the real arm and rail.",
-    )
-    parser.add_argument(
-        "--hardware",
-        action="store_true",
-        help="Declare that this run targets real hardware (requires --allow-hardware).",
-    )
-    parser.add_argument(
         "--scale",
         type=float,
         default=0.5,
@@ -79,9 +69,6 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    if args.hardware and not args.allow_hardware:
-        print("Refusing to command hardware without --allow-hardware.", file=sys.stderr)
-        return 2
     if not 0.2 <= args.scale <= 1.0:
         print("--scale must be between 0.2 and 1.0.", file=sys.stderr)
         return 2

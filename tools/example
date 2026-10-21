@@ -12,10 +12,11 @@ Usage: ./tools/example <script> [args...]
 
 Examples:
   ./tools/example small_arm_motion --return-home
-  ./tools/example leaf_pick_imitation --move-rail --return-home
-  ./tools/example leaf_pick_imitation --scale 0.5 --return-home
+  ./tools/example arm_reach_grip --release --return-home
+  ./tools/example rail_reach_grip --rail-m 0.2 --release --return-home
 
-Bringup must already be running (./tools/run --mode view).
+Bringup must already be running (./tools/run).
+The script commands whichever mode that bringup started.
 EOF
   exit 0
 fi

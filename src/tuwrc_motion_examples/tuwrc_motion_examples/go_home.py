@@ -29,16 +29,6 @@ HOME_ARM = {
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Move to the saved home position.")
     parser.add_argument(
-        "--allow-hardware",
-        action="store_true",
-        help="Required confirmation when commanding the real arm.",
-    )
-    parser.add_argument(
-        "--hardware",
-        action="store_true",
-        help="Declare that this run targets real hardware (requires --allow-hardware).",
-    )
-    parser.add_argument(
         "--duration",
         type=float,
         default=4.0,
@@ -46,9 +36,6 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    if args.hardware and not args.allow_hardware:
-        print("Refusing to command hardware without --allow-hardware.", file=sys.stderr)
-        return 2
     if args.duration <= 0.0:
         print("--duration must be > 0.", file=sys.stderr)
         return 2

@@ -6,29 +6,7 @@ mock view mode, and native Ubuntu hardware control.
 
 Repository: [janbocchino/tuwrc-basil-farm-robotcontrol](https://github.com/janbocchino/tuwrc-basil-farm-robotcontrol)
 
-## Next steps
-
-### Team Robot Control
-
-- [ ]
-
-### Team Machine Vision
-
-- [ ]
-
-## Quick start
-
-### Choose a mode
-
-- **View mode:** mock arm and rail movement in RViz and the browser GUI. Runs
-  through Docker on macOS/Windows, or Docker/native ROS on Linux.
-- **Hardware mode:** real six-servo arm and Arduino rail. Runs only on native
-  Ubuntu 24.04 with ROS 2 Jazzy.
-
-Hardware mode is intentionally refused in Docker Desktop. Use native Ubuntu
-for USB control.
-
-### 1. Get the repository
+## 1. Get the repository
 
 Install Git and Git LFS, then clone the complete workspace:
 
@@ -41,45 +19,44 @@ git lfs pull
 
 The LFS step downloads the robot meshes used by RViz.
 
-### 2. Prepare the computer
+## 2. One-Time-Setup for Linux without docker (Ubuntu only)
 
-#### macOS or Windows/WSL: Docker view mode
+Choose the command according to rather you will connect to hardware or not with your device.
 
-Install and start Docker Desktop. On Windows, enable WSL2 integration and
-clone the repository inside WSL.
-
-No local ROS installation is required.
-
-#### Ubuntu 24.04: native view or hardware mode
-
-Use the checked-in setup script instead of copying the package-install and
-build commands one by one:
+IMPORTANT: After the first `--hardware` run, log out and back in so `dialout` applies.
 
 ```bash
-# Native mock/view setup
-./tools/setup-linux --view
-
-# Or real arm + rail setup
-./tools/setup-linux --hardware
+./tools/setup-linux --view       # Use if you have Linux and will never connect to hardware
+./tools/setup-linux --hardware   # Use if you connect to real hardware (e.g. our PC at the hub)
 ```
 
-The script validates Ubuntu 24.04, installs ROS 2 Jazzy and workspace
-dependencies, initializes Git LFS, resolves ROS dependencies, and builds with
-`colcon`. It is safe to rerun after pulling dependency changes.
+The script installs ROS 2 Jazzy and the workspace dependencies, initializes
+Git LFS, and builds with `colcon`.
 
-Useful setup options:
+| Flag           | Meaning                                                         |
+| -------------- | --------------------------------------------------------------- |
+| `--view`       | Native mock controllers.                                        |
+| `--hardware`   | View packages, plus the ST3215 library and the `dialout` group. |
+| `--check`      | Report missing packages. Changes nothing.                       |
+| `--dry-run`    | Prints needed install commands (doesn't execute them)           |
+| `--yes`        | Skip the confirmation prompt.                                   |
+| `-h`, `--help` | Shows this comand list list.                                    |
 
-```bash
-./tools/setup-linux --hardware --check   # report missing setup only
-./tools/setup-linux --view --dry-run     # print commands without changing anything
-./tools/setup-linux --hardware --yes     # skip the confirmation prompt
-```
+## 3.1 View mode
 
-The hardware profile also installs the Python ST3215 library and adds the
-current user to `dialout`. Log out and back in after the first `dialout`
-change.
+Mock arm and rail in RViz and the browser
 
-### 3. Start view mode
+Runs through Docker on macOS, Windows or Linux, or through native ROS on Ubuntu. No USB hardware.
+
+### Prepare
+
+On macOS or Windows, install and start Docker Desktop. On Windows, enable
+WSL2 integration and clone the repository inside WSL. No local ROS install
+is required.
+
+On Ubuntu 24.04, run `./tools/setup-linux --view` from the table above.
+
+### Start
 
 From the repository root:
 
@@ -87,17 +64,11 @@ From the repository root:
 ./tools/run --mode view
 ```
 
-On macOS and Windows this starts Docker. Open:
+On macOS and Windows have Docker Desktop open before running. Open:
 
 - RViz/noVNC desktop: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html)
-  (password: `ros`)
+(password: `ros`)
 - Browser control GUI: [http://localhost:3000](http://localhost:3000)
-
-On native Ubuntu:
-
-```bash
-./tools/run --mode view --runtime native
-```
 
 Stop with `Ctrl+C`. To stop Docker explicitly:
 
@@ -105,16 +76,17 @@ Stop with `Ctrl+C`. To stop Docker explicitly:
 docker compose --profile view down
 ```
 
-If Docker view mode uses too much CPU, keep the browser controls but disable
-the 3D view:
+| Flag                      | Default                              | Meaning                                        |
+| ------------------------- | ------------------------------------ | ---------------------------------------------- |
+| `--mode view`             | `view`                               | Mock arm and rail.                             |
+| `--runtime native/docker` | Docker on macOS/WSL, native on Linux | chooses the environment                        |
+| `--no-rviz`               | RViz on                              | Skip RViz. Largest CPU saving in Docker.       |
+| `--no-moveit`             | MoveIt on                            | Skip MoveIt. RViz shows the plain robot model. |
+| `--no-gui`                | GUI on                               | Skip the browser GUI.                          |
+| `--geometry WxH`          | `1600x900`                           | noVNC desktop size. Docker only.               |
+| `-h`, `--help`            |                                      | Show the full `./tools/run` list.              |
 
-```bash
-./tools/run --mode view --no-rviz
-```
-
-Other useful options are `--no-moveit` and `--geometry 1280x720`.
-
-### 4. Make the first view movement
+### First movement
 
 Wait until the browser GUI reports that both controllers are ready:
 
@@ -123,49 +95,63 @@ Wait until the browser GUI reports that both controllers are ready:
 3. Click **Send**.
 4. Confirm the model moves in RViz.
 
-Then try a bounded scripted movement from a second terminal:
+Then run a command from [Motion examples](#motion-examples) in a second
+terminal.
 
-```bash
-./tools/example small_arm_motion --return-home
-./tools/example arm_reach_grip --release --return-home
-./tools/example rail_reach_grip --rail-m 0.2 --release --return-home
-```
+## 3.2 Hardware mode
 
-`./tools/example` automatically uses the running Docker container or the
-native ROS workspace.
+Real arm and rail on native Ubuntu 24.04 only. Hardware mode is refused in Docker and on macOS.
 
-### 5. Connect the real arm and rail
+### Prepare
 
-Hardware mode requires the `--hardware` setup profile above.
+Run `./tools/setup-linux --hardware`. See [Ubuntu setup](#ubuntu-setup).
 
-Connect the arm servo board and rail Arduino with data-capable USB cables,
-then identify stable device paths:
+Connect the arm servo board and rail Arduino with data-capable USB cables, then identify their device paths:
 
 ```bash
 ls -l /dev/serial/by-id/
 ```
 
-The arm is usually `/dev/ttyACM*`; the rail is usually `/dev/ttyUSB*`.
+The arm is usually `/dev/ttyACM*` and the rail is usually `/dev/ttyUSB*`.
 Short device numbers can change after rebooting. Prefer the
 `/dev/serial/by-id/...` paths.
 
-Keep people and objects clear, then start bringup:
+### Start
+
+Start bringup with the following command and add the correct ports to it:
 
 ```bash
-./tools/run --mode hardware --runtime native \
+./tools/run --mode hardware # default bringup
+
+# or with new ports
+./tools/run --mode hardware \
   --port /dev/serial/by-id/<arm-device> \
   --rail-port /dev/serial/by-id/<rail-device>
 ```
 
-If more than one serial device is visible, the arm driver fails safely until
-an explicit `--port` is supplied.
+| Flag                    | Default         | Meaning                                                |
+| ----------------------- | --------------- | ------------------------------------------------------ |
+| `--mode hardware`       |                 | Real six-servo arm and Arduino rail.                   |
+| `--runtime native`      | native on Linux | Required for USB. Docker is refused.                   |
+| `--port PATH`           | `/dev/ttyACM0`  | Arm serial device.                                     |
+| `--rail-port PATH`      | `/dev/ttyUSB1`  | Rail Arduino.                                          |
+| `--camera`              | off             | Gripper-mounted Gemini 2. Requires hardware mode.      |
+| `--colored-point-cloud` | off             | Also publish the RGB point cloud. Turns `--camera` on. |
 
-### 6. Calibrate the rail
+ `--no-rviz`, `--no-moveit`, `--no-gui`, and `--runtime` from [View mode](#view-mode) work here too.
+
+Parsed in `tools/run` and forwarded to
+`src/tuwrc_bringup/launch/robot.launch.py`.
+
+### Calibrate the rail
 
 Calibrate after every new bringup. The Arduino forgets its position whenever
 it reconnects, and the driver rejects rail goals until calibration succeeds.
 
-From a second terminal:
+`tools/run` and `tools/example` load ROS on their own. This service call is
+typed directly, so the terminal needs the two `source` lines first. The
+first loads system ROS 2 Jazzy. The second overlays this workspace. Each new
+terminal needs both, in this order, after `colcon build`.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -173,60 +159,64 @@ source install/setup.bash
 ros2 service call /tuwrc_rail_driver/calibrate std_srvs/srv/Trigger
 ```
 
-The rail moves to the left limit switch, measures the right limit, briefly
-checks the middle, and returns to the left home position. Normal measured
-travel is about 71.5 cm.
+The arm moves to the left and right limit switches on the rail, measures the distance and coordinates, briefly checks the middle, and returns to the left home position. Normal measured travel is about 71.5 cm.
 
-### What the `source` commands mean
+### First movement
 
-```bash
-source /opt/ros/jazzy/setup.bash
-```
+Start in the browser GUI with one joint and a small change. Confirm that
+the real arm and RViz agree. Then use the same commands as
+[Motion examples](#motion-examples).
 
-Loads the system ROS 2 Jazzy environment into the current terminal. It makes
-commands such as `ros2` and the installed ROS packages available.
+## 4. Motion examples
 
-```bash
-source install/setup.bash
-```
-
-Overlays the packages built from this repository. Run it after the Jazzy
-setup command and after `colcon build`. Each new terminal needs these
-environment settings; `tools/run` and `tools/example` source them
-automatically.
-
-### 7. Home the arm
-
-After bringup and rail calibration, move the arm to the saved home pose:
+Bringup must already be running. `./tools/example` uses the running Docker
+container or the native ROS workspace, then runs a script from
+`tuwrc_motion_examples`. The script moves the mock robot or the real robot
+according to the mode `./tools/run` started.
 
 ```bash
-./tools/example go_home --hardware --allow-hardware
+./tools/example small_arm_motion --return-home
+./tools/example arm_reach_grip --release --return-home
+./tools/example rail_reach_grip --rail-m 0.2 --release --return-home
+./tools/example go_home
 ```
 
-Real motion examples require both `--hardware` and `--allow-hardware`. The
-second flag is an explicit operator confirmation.
+| Script | Motion | Flags |
+| --- | --- | --- |
+| `go_home` | Arm to the saved home pose. | `--duration` (default 4 s) |
+| `small_arm_motion` | Small nudge from the current joints. | `--duration` (2 s), `--delta-deg` (±20°), `--return-home` |
+| `arm_reach_grip` | Reach forward and close the gripper. Rail stays put. | `--scale` (0.5), `--duration-scale`, `--release`, `--return-home` |
+| `rail_reach_grip` | Move the rail, then the same reach and grip. | `--rail-m` required (0–0.715), plus the `arm_reach_grip` flags |
+| `leaf_pick_imitation` | Front reach and snip. Add `--move-rail` to move the rail first. | `--rail-m` (0.15), `--scale` (1.0), `--duration-scale`, `--return-home` |
 
-### 8. Make the first hardware movement
+Shared flags: `--scale` (0.2–1.0) shrinks joints 1–5 toward zero, `--return-home` goes back to the pose at the start of the script, and `--release` opens the gripper after the retract. `0` on `--rail-m` is the left switch. `./tools/example <script> --help` prints that script's flags. Sources are in `src/tuwrc_motion_examples/tuwrc_motion_examples/`.
 
-Start in the browser GUI with one joint and a small change. Confirm that the
-real arm and RViz agree.
+## Repository map
 
-Then run:
-
-```bash
-./tools/example small_arm_motion \
-  --hardware --allow-hardware --delta-deg 5 --return-home
-
-./tools/example arm_reach_grip \
-  --hardware --allow-hardware --release --return-home
+```text
+tuwrc-basil-farm-robotcontrol/
+├── CONTRIBUTING.md                PR checks and calibration rules
+├── Dockerfile
+├── docker-compose.yml
+├── firmware/rail_stepper/         Arduino rail firmware
+├── requirements-hardware.txt      physical arm Python dependency
+├── tests/                         offline contracts and helper tests
+├── tools/
+│   ├── setup-linux                one-time Ubuntu setup
+│   ├── run                        canonical bringup command
+│   └── example                    motion example runner
+└── src/
+    ├── lerobot_description/       URDF/xacro, meshes, RViz
+    ├── lerobot_gui/               browser GUI
+    ├── six_motor_driver/          ST3215 driver + calibration
+    ├── six_motor_moveit_config/   MoveIt/SRDF/controller config
+    ├── tuwrc_bringup/             unified view/hardware launch
+    ├── tuwrc_mock_hardware/       mock controllers + rail driver
+    └── tuwrc_motion_examples/     movement examples
 ```
 
-Only command the rail after calibration:
-
-```bash
-./tools/example rail_reach_grip \
-  --hardware --allow-hardware --rail-m 0.2 --release --return-home
-```
+The canonical launch is
+`src/tuwrc_bringup/launch/robot.launch.py`; use it through `tools/run`.
 
 ## Important information and guides
 
@@ -252,21 +242,14 @@ ros2 topic echo --once --field position /joint_states
 ```
 
 Rail home is the left limit switch (`rail_joint = 0.0 m`) established by the
-calibration service.
+calibration service. `./tools/example go_home` moves the arm to this pose.
 
 ### Calibration and safety
 
 - Arm calibration lives in
-  `src/six_motor_driver/config/six_motor_calibration.yaml`.
-- Model/planning limits live in `so101_base.xacro` and
-  `six_motor_moveit_config/config/joint_limits.yaml`.
-- Do not change measured limits, zero positions, or directions without a
-  documented physical check. See [CONTRIBUTING.md](CONTRIBUTING.md).
-- Begin with one joint, a small delta, and a clear workspace.
-- The arm driver honors trajectory timing and rejects out-of-calibration
-  targets.
-- The GUI validates joint names, limits, and durations, but the hardware
-  driver remains the final safety boundary.
+`src/six_motor_driver/config/six_motor_calibration.yaml`.
+- Model/planning limits live in `so101_base.xacro` and  
+`six_motor_moveit_config/config/joint_limits.yaml`.
 
 ### Rail calibration and model
 
@@ -276,9 +259,9 @@ calibration service.
 - The rail firmware is `firmware/rail_stepper/rail_stepper.ino`.
 - Firmware and driver communicate at 115200 baud using `ST ...` status lines.
 - Restart bringup after changing model limits; RViz and MoveIt read them at
-  startup.
+startup.
 - Rail-to-arm mount offsets in `so101_base.xacro` remain provisional until
-  checked against assembled CAD.
+checked against assembled CAD.
 
 Rail status topics:
 
@@ -291,7 +274,7 @@ Rail status topics:
 Both modes expose the same ROS interfaces:
 
 - Arm and gripper action:
-  `/six_motor_controller/follow_joint_trajectory`
+`/six_motor_controller/follow_joint_trajectory`
 - Rail action: `/rail_controller/follow_joint_trajectory`
 - Joint feedback: `/joint_states`
 - MoveIt IK: `/compute_ik`, group `arm`, chain `world` → `tcp`
@@ -299,78 +282,21 @@ Both modes expose the same ROS interfaces:
 View mode provides mock action servers. Hardware mode uses the ST3215 arm
 driver and Arduino rail driver.
 
-### Repository map
-
-```text
-tuwrc-basil-farm-robotcontrol/
-├── CONTRIBUTING.md                PR checks and calibration rules
-├── Dockerfile
-├── docker-compose.yml
-├── firmware/rail_stepper/         Arduino rail firmware
-├── requirements-hardware.txt      physical arm Python dependency
-├── tests/                         offline contracts and helper tests
-├── tools/
-│   ├── setup-linux                one-time Ubuntu setup
-│   ├── run                        canonical bringup command
-│   └── example                    motion example runner
-└── src/
-    ├── lerobot_description/       URDF/xacro, meshes, RViz
-    ├── lerobot_gui/               browser GUI
-    ├── six_motor_driver/          ST3215 driver + calibration
-    ├── six_motor_moveit_config/   MoveIt/SRDF/controller config
-    ├── tuwrc_bringup/             unified view/hardware launch
-    ├── tuwrc_mock_hardware/       mock controllers + rail driver
-    └── tuwrc_motion_examples/     bounded movement examples
-```
-
-The canonical launch is
-`src/tuwrc_bringup/launch/robot.launch.py`; use it through `tools/run`.
-
 ### Troubleshooting
 
 - **Docker is missing:** install/start Docker Desktop or Docker Engine.
 - **Port 6080 or 3000 is busy:** run
-  `docker compose --profile view down`.
+`docker compose --profile view down`.
 - **RViz meshes are missing:** run `git lfs pull`.
 - **ROS/colcon is missing on Ubuntu:** rerun
-  `./tools/setup-linux --view` or `--hardware`.
+`./tools/setup-linux --view` or `--hardware`.
 - **USB permission denied:** verify `dialout` membership and log out/in.
 - **Serial device is ambiguous:** pass stable `--port` and `--rail-port`
-  paths from `/dev/serial/by-id/`.
+paths from `/dev/serial/by-id/`.
 - **Rail goal is rejected:** call the calibration service after bringup.
 - **Controllers are not ready:** inspect the bringup terminal before sending
-  movement.
+movement.
 - **Docker view mode is hot:** use `--no-rviz`.
-
-## Git workflow
-
-Push the whole repository, not only `src/`. Commit source, launch/config,
-tests, documentation, Docker files, firmware, tools, and meshes through Git
-LFS. Do not commit `build/`, `install/`, `log/`, IDE settings, or `.env`.
-
-Before opening a pull request, run the checks in
-[CONTRIBUTING.md](CONTRIBUTING.md). Use focused branches such as
-`feature/<name>`, `fix/<name>`, or `docs/<name>`.
-
-## Update log
-
-### 2026-10-14 — repository cleanup
-
-- Reorganized this README around setup, calibration, home, and first motion.
-- Added `tools/setup-linux` for repeatable Ubuntu view/hardware setup.
-- Fixed merged arm/rail joint-state handling and hardware trajectory timing.
-- Added offline helper tests.
-- Removed superseded rail-hold, three-motor, Gazebo, and duplicate MoveIt
-  paths; unified bringup remains canonical.
-
-### 2025-10-03 — first hardware bringup
-
-- Connected the SO-101 arm and Arduino rail over USB.
-- Measured 1000 rail steps per centimetre.
-- Added the six-motor hardware driver and real rail driver.
-- Added explicit arm/rail serial-port selection.
-- Changed the MoveIt arm chain to `world` → `tcp` so planning includes the
-  rail.
 
 ## License
 

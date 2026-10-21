@@ -93,16 +93,6 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Move the arm by small bounded joint deltas."
     )
-    parser.add_argument(
-        "--allow-hardware",
-        action="store_true",
-        help="Required confirmation when commanding the real arm.",
-    )
-    parser.add_argument(
-        "--hardware",
-        action="store_true",
-        help="Declare that this run targets real hardware (requires --allow-hardware).",
-    )
     parser.add_argument("--duration", type=float, default=2.0)
     parser.add_argument(
         "--return-home",
@@ -116,13 +106,6 @@ def main(argv=None):
         help="Optional uniform delta in degrees applied to joints 1-4 and 6.",
     )
     args = parser.parse_args(argv)
-
-    if args.hardware and not args.allow_hardware:
-        print(
-            "Refusing to command hardware without --allow-hardware.",
-            file=sys.stderr,
-        )
-        return 2
 
     deltas = dict(DEFAULT_DELTAS)
     if args.delta_deg is not None:

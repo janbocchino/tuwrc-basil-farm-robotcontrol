@@ -48,12 +48,11 @@ def main() -> None:
             fail(f"mock_hardware missing expected token: {token}")
 
     motion = MOTION.read_text(encoding="utf-8")
-    if "--allow-hardware" not in motion:
-        fail("small_arm_motion must require --allow-hardware for real hardware")
+    if "/six_motor_controller/follow_joint_trajectory" not in motion:
+        fail("small_arm_motion missing arm follow_joint_trajectory action")
 
     leaf = LEAF_PICK.read_text(encoding="utf-8")
     for token in (
-        "--allow-hardware",
         "/six_motor_controller/follow_joint_trajectory",
         "/rail_controller/follow_joint_trajectory",
     ):

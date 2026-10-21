@@ -145,16 +145,6 @@ def main(argv=None):
         )
     )
     parser.add_argument(
-        "--allow-hardware",
-        action="store_true",
-        help="Required confirmation when commanding the real arm.",
-    )
-    parser.add_argument(
-        "--hardware",
-        action="store_true",
-        help="Declare that this run targets real hardware (requires --allow-hardware).",
-    )
-    parser.add_argument(
         "--return-home",
         action="store_true",
         help="Return to the starting joint positions after the sequence.",
@@ -186,13 +176,6 @@ def main(argv=None):
         help="Multiply each waypoint duration (default 1.0).",
     )
     args = parser.parse_args(argv)
-
-    if args.hardware and not args.allow_hardware:
-        print(
-            "Refusing to command hardware without --allow-hardware.",
-            file=sys.stderr,
-        )
-        return 2
 
     if not 0.2 <= args.scale <= 1.0:
         print("--scale must be between 0.2 and 1.0.", file=sys.stderr)

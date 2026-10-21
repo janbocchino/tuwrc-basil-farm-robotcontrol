@@ -118,63 +118,15 @@ physical robot.
 
 ## Team workstreams
 
-### Robot control
-
-This workstream owns reliable and safe motion of the arm and rail.
-
-Typical responsibilities include:
-
-- maintaining the measured robot model and calibration;
-- improving motion planning and collision avoidance;
-- making hardware communication robust;
-- developing safe task motions;
-- validating repeatability on the physical robot;
-
-### Machine vision
-
-This workstream turns camera data into useful targets for the robot.
-
-Typical responsibilities include:
-
-- validating camera data and depth quality;
-- measuring the transform between the gripper and camera;
-- detecting basil plants, leaves, stems, and possible interaction points;
-- estimating target positions in robot coordinates;
-- passing selected targets to motion planning through a clear interface.
-
-### Farm autonomy
-
-This workstream connects individual robot capabilities into an autonomous farm
-operation.
-
-Typical responsibilities include:
-
-- defining plant-health and farm-state data;
-- recording actions, outcomes, and failures;
-- monitoring system health and requesting human help when necessary;
-
-## Recommended next steps
-
-The following order builds on the current system while reducing hardware risk.
-
-### 1. Define the first autonomous farming cycle
-
-### 2. Establish a measured physical model
-
-### 3. Build a first vision pipeline
-
-### 4. Demonstrate one complete autonomous cycle
+| Subteam | What they do |
+| --- | --- |
+| **Machine Vision & Perception** | Teaches the robot to see: detects when a plant is ready to harvest and exactly where to cut. |
+| **Robot Control & Motion Planning** | Moves arm and rail through free space to a pre-cut pose right in front of the stem. |
+| **Manipulation** (new team) | Owns the last centimeters: takes over at the pre-cut pose and makes the cut, primarily with a learned policy trained from teleoperated demonstrations. |
 
 ## How we work
 
-- Use focused branches and small pull requests.
-- Explain what changed, how it was tested, and whether physical measurements
-were affected.
-- Run the checks listed in [CONTRIBUTING.md](CONTRIBUTING.md).
-- Keep shared interfaces stable unless both workstreams agree to a change.
-- Record important hardware findings in the repository, not only in chat or
-personal notes.
-- Ask before changing calibration, coordinate frames, or safety boundaries.
+ [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Key terms
 
