@@ -18,4 +18,4 @@ Prefer the unified bringup from the repository root:
 - `config/kinematics.yaml`: inverse-kinematics configuration
 - `config/moveit.rviz`: MoveIt RViz layout
 
-See the root [README.md](../../README.md) for OS-specific instructions.
+See the root [README.md](../../../README.md) for OS-specific instructions.

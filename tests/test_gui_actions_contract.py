@@ -8,11 +8,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-GUI = ROOT / "src/lerobot_gui/lerobot_gui/joint_state_gui.py"
-MOCK = ROOT / "src/tuwrc_mock_hardware/tuwrc_mock_hardware/mock_hardware.py"
-MOTION = ROOT / "src/tuwrc_motion_examples/tuwrc_motion_examples/small_arm_motion.py"
+CONTROL = ROOT / "src/robot_control"
+GUI = CONTROL / "lerobot_gui/lerobot_gui/joint_state_gui.py"
+MOCK = CONTROL / "tuwrc_mock_hardware/tuwrc_mock_hardware/mock_hardware.py"
+MOTION = (
+    CONTROL / "tuwrc_motion_examples/tuwrc_motion_examples/small_arm_motion.py"
+)
 LEAF_PICK = (
-    ROOT / "src/tuwrc_motion_examples/tuwrc_motion_examples/leaf_pick_imitation.py"
+    CONTROL
+    / "tuwrc_motion_examples/tuwrc_motion_examples/leaf_pick_imitation.py"
 )
 
 

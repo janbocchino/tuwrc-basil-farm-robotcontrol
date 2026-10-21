@@ -10,13 +10,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-CAMERA_LAUNCH = ROOT / "src/tuwrc_bringup/launch/gemini2.launch.py"
-ROBOT_LAUNCH = ROOT / "src/tuwrc_bringup/launch/robot.launch.py"
-PACKAGE_XML = ROOT / "src/tuwrc_bringup/package.xml"
+CAMERA_LAUNCH = ROOT / "src/shared/tuwrc_bringup/launch/gemini2.launch.py"
+ROBOT_LAUNCH = ROOT / "src/shared/tuwrc_bringup/launch/robot.launch.py"
+PACKAGE_XML = ROOT / "src/shared/tuwrc_bringup/package.xml"
 RUNNER = ROOT / "tools/run"
 REPOS = ROOT / "dependencies/orbbec.repos"
-CAMERA_URDF = ROOT / "src/lerobot_description/urdf/gemini2_camera.xacro"
-ROBOT_URDF = ROOT / "src/lerobot_description/urdf/so101_base.xacro"
+CAMERA_URDF = (
+    ROOT / "src/shared/lerobot_description/urdf/gemini2_camera.xacro"
+)
+ROBOT_URDF = ROOT / "src/shared/lerobot_description/urdf/so101_base.xacro"
 
 
 def fail(message: str) -> None:

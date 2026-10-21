@@ -34,5 +34,5 @@ ros2 run six_motor_driver show_six_positions \
 ```
 
 Do not edit calibration values without a documented physical measurement.
-See the root [README](../../README.md) and
-[CONTRIBUTING](../../CONTRIBUTING.md).
+See the root [README](../../../README.md) and
+[CONTRIBUTING](../../../CONTRIBUTING.md).

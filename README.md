@@ -95,7 +95,7 @@ Wait until the browser GUI reports that both controllers are ready:
 3. Click **Send**.
 4. Confirm the model moves in RViz.
 
-Then run a command from [Motion examples](#motion-examples) in a second
+Then run a command from [Motion examples](#4-motion-examples) in a second
 terminal.
 
 ## 3.2 Hardware mode
@@ -104,7 +104,7 @@ Real arm and rail on native Ubuntu 24.04 only. Hardware mode is refused in Docke
 
 ### Prepare
 
-Run `./tools/setup-linux --hardware`. See [Ubuntu setup](#ubuntu-setup).
+Run `./tools/setup-linux --hardware`. See [Ubuntu setup](#2-one-time-setup-for-linux-without-docker-ubuntu-only).
 
 Connect the arm servo board and rail Arduino with data-capable USB cables, then identify their device paths:
 
@@ -138,10 +138,10 @@ Start bringup with the following command and add the correct ports to it:
 | `--camera`              | off             | Gripper-mounted Gemini 2. Requires hardware mode.      |
 | `--colored-point-cloud` | off             | Also publish the RGB point cloud. Turns `--camera` on. |
 
- `--no-rviz`, `--no-moveit`, `--no-gui`, and `--runtime` from [View mode](#view-mode) work here too.
+ `--no-rviz`, `--no-moveit`, `--no-gui`, and `--runtime` from [View mode](#31-view-mode) work here too.
 
 Parsed in `tools/run` and forwarded to
-`src/tuwrc_bringup/launch/robot.launch.py`.
+`src/shared/tuwrc_bringup/launch/robot.launch.py`.
 
 ### Calibrate the rail
 
@@ -165,7 +165,7 @@ The arm moves to the left and right limit switches on the rail, measures the dis
 
 Start in the browser GUI with one joint and a small change. Confirm that
 the real arm and RViz agree. Then use the same commands as
-[Motion examples](#motion-examples).
+[Motion examples](#4-motion-examples).
 
 ## 4. Motion examples
 
@@ -189,7 +189,7 @@ according to the mode `./tools/run` started.
 | `rail_reach_grip` | Move the rail, then the same reach and grip. | `--rail-m` required (0–0.715), plus the `arm_reach_grip` flags |
 | `leaf_pick_imitation` | Front reach and snip. Add `--move-rail` to move the rail first. | `--rail-m` (0.15), `--scale` (1.0), `--duration-scale`, `--return-home` |
 
-Shared flags: `--scale` (0.2–1.0) shrinks joints 1–5 toward zero, `--return-home` goes back to the pose at the start of the script, and `--release` opens the gripper after the retract. `0` on `--rail-m` is the left switch. `./tools/example <script> --help` prints that script's flags. Sources are in `src/tuwrc_motion_examples/tuwrc_motion_examples/`.
+Shared flags: `--scale` (0.2–1.0) shrinks joints 1–5 toward zero, `--return-home` goes back to the pose at the start of the script, and `--release` opens the gripper after the retract. `0` on `--rail-m` is the left switch. `./tools/example <script> --help` prints that script's flags. Sources are in `src/robot_control/tuwrc_motion_examples/tuwrc_motion_examples/`.
 
 ## Repository map
 
@@ -206,24 +206,33 @@ tuwrc-basil-farm-robotcontrol/
 │   ├── run                        canonical bringup command
 │   └── example                    motion example runner
 └── src/
-    ├── lerobot_description/       URDF/xacro, meshes, RViz
-    ├── lerobot_gui/               browser GUI
-    ├── six_motor_driver/          ST3215 driver + calibration
-    ├── six_motor_moveit_config/   MoveIt/SRDF/controller config
-    ├── tuwrc_bringup/             unified view/hardware launch
-    ├── tuwrc_mock_hardware/       mock controllers + rail driver
-    └── tuwrc_motion_examples/     movement examples
+    ├── shared/                    cross-team models, contracts, integration
+    │   ├── lerobot_description/   URDF/xacro, frames, meshes, RViz
+    │   ├── tuwrc_interfaces/      shared ROS messages/actions/services
+    │   └── tuwrc_bringup/         unified view/hardware launch
+    ├── robot_control/             Robot Control & Motion Planning
+    │   ├── lerobot_gui/           browser GUI
+    │   ├── six_motor_driver/      ST3215 driver + calibration
+    │   ├── six_motor_moveit_config/ MoveIt/SRDF/controller config
+    │   ├── tuwrc_mock_hardware/   mock controllers + rail driver
+    │   └── tuwrc_motion_examples/ movement examples
+    ├── perception/                Machine Vision & Perception packages
+    └── manipulation/              Manipulation packages
 ```
 
+The four first-level folders under `src/` are organizational groups. Their
+children are the ROS packages containing `package.xml`. Add new code to the
+owning workstream and put cross-team models and contracts in `shared/`.
+
 The canonical launch is
-`src/tuwrc_bringup/launch/robot.launch.py`; use it through `tools/run`.
+`src/shared/tuwrc_bringup/launch/robot.launch.py`; use it through `tools/run`.
 
 ## Important information and guides
 
 ### Home position
 
 The canonical arm home pose is `HOME_ARM` in
-`src/tuwrc_motion_examples/tuwrc_motion_examples/go_home.py`:
+`src/robot_control/tuwrc_motion_examples/tuwrc_motion_examples/go_home.py`:
 
 ```text
 1:  0.0107 rad
@@ -247,7 +256,7 @@ calibration service. `./tools/example go_home` moves the arm to this pose.
 ### Calibration and safety
 
 - Arm calibration lives in
-`src/six_motor_driver/config/six_motor_calibration.yaml`.
+`src/robot_control/six_motor_driver/config/six_motor_calibration.yaml`.
 - Model/planning limits live in `so101_base.xacro` and  
 `six_motor_moveit_config/config/joint_limits.yaml`.
 

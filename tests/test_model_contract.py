@@ -10,10 +10,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-URDF = ROOT / "src/lerobot_description/urdf/so101_base.xacro"
-SRDF = ROOT / "src/six_motor_moveit_config/config/so101.srdf"
-LIMITS = ROOT / "src/six_motor_moveit_config/config/joint_limits.yaml"
-CALIB = ROOT / "src/six_motor_driver/config/six_motor_calibration.yaml"
+URDF = ROOT / "src/shared/lerobot_description/urdf/so101_base.xacro"
+SRDF = ROOT / "src/robot_control/six_motor_moveit_config/config/so101.srdf"
+LIMITS = (
+    ROOT / "src/robot_control/six_motor_moveit_config/config/joint_limits.yaml"
+)
+CALIB = ROOT / "src/robot_control/six_motor_driver/config/six_motor_calibration.yaml"
 
 
 def fail(message: str) -> None:
@@ -63,16 +65,16 @@ def main() -> None:
 
     # Mesh presence
     for relative in (
-        "src/lerobot_description/meshes/rail/rail.stl",
-        "src/lerobot_description/meshes/rail/plate.stl",
-        "src/lerobot_description/meshes/so101/base_so101_v2.stl",
+        "src/shared/lerobot_description/meshes/rail/rail.stl",
+        "src/shared/lerobot_description/meshes/rail/plate.stl",
+        "src/shared/lerobot_description/meshes/so101/base_so101_v2.stl",
     ):
         path = ROOT / relative
         if not path.is_file() or path.stat().st_size < 100:
             fail(f"Missing or tiny mesh: {relative}")
 
     # Ensure package manifests parse as XML.
-    for package_xml in ROOT.glob("src/*/package.xml"):
+    for package_xml in ROOT.glob("src/*/*/package.xml"):
         ET.parse(package_xml)
 
     print("OK: model contract checks passed")

@@ -12,9 +12,10 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src/lerobot_gui"))
-sys.path.insert(0, str(ROOT / "src/six_motor_driver"))
-sys.path.insert(0, str(ROOT / "src/tuwrc_mock_hardware"))
+CONTROL = ROOT / "src/robot_control"
+sys.path.insert(0, str(CONTROL / "lerobot_gui"))
+sys.path.insert(0, str(CONTROL / "six_motor_driver"))
+sys.path.insert(0, str(CONTROL / "tuwrc_mock_hardware"))
 
 from lerobot_gui.control_validation import (  # noqa: E402
     validate_duration,

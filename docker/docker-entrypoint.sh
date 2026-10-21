@@ -31,8 +31,9 @@ cd /workspace
 # Docker volumes so source edits and install stay in sync (fast for this repo).
 # --symlink-install keeps colcon from re-copying the ~16 MB of meshes into
 # install/ on every single start; it matches what tools/run does natively.
+# --cmake-clean-cache lets persistent Docker build volumes survive package moves.
 echo "Building workspace inside container…"
-colcon build --symlink-install
+colcon build --symlink-install --cmake-clean-cache
 # shellcheck disable=SC1091
 source /workspace/install/setup.bash
 set -u

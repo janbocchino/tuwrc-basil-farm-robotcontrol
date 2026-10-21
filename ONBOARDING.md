@@ -149,8 +149,10 @@ physical mechanism.
 - [README.md](README.md) — setup, startup, calibration, and troubleshooting.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — branch, review, testing, and measurement
 rules.
-- `src/tuwrc_motion_examples/` — understandable examples of robot tasks.
-- `src/tuwrc_bringup/launch/robot.launch.py` — the main system startup path.
+- `src/robot_control/tuwrc_motion_examples/` — understandable examples of
+  robot tasks.
+- `src/shared/tuwrc_bringup/launch/robot.launch.py` — the main system startup
+  path.
 
 If you are unsure where a change belongs, begin with the user-visible behavior
 you want, identify which workstream owns it, and discuss the interface before
