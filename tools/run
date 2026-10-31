@@ -133,7 +133,8 @@ run_native() {
   set -u
   if [[ "$USE_CAMERA" == "true" ]] && ! ros2 pkg prefix orbbec_camera >/dev/null 2>&1; then
     echo "orbbec_camera is not installed in this workspace." >&2
-    echo "Follow the Gemini 2 setup steps in README.md, then rebuild with colcon." >&2
+    echo "Optional camera support requires importing dependencies/orbbec.repos" >&2
+    echo "and following the pinned Orbbec wrapper's Linux setup, then rebuilding." >&2
     exit 1
   fi
   exec ros2 launch tuwrc_bringup robot.launch.py \

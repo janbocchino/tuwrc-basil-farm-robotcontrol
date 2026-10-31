@@ -1,5 +1,5 @@
 repositories:
-  src/OrbbecSDK_ROS2:
+  src/perception/OrbbecSDK_ROS2:
     type: git
     url: https://github.com/orbbec/OrbbecSDK_ROS2.git
     version: 8e7cad2bfa2c4a6ac4e779be99c64e72166043af
