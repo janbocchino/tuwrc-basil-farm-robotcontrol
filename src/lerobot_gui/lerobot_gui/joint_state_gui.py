@@ -289,32 +289,35 @@ HTML_PAGE = """<!doctype html>
       return typeof v === "number" && isFinite(v) ? v.toFixed(d) : "—";
     }
 
-    function initRows(joints) {
-      const names = JOINT_ORDER.filter(n => joints.some(j => j.name === n));
+    
+  function initRows() {
       rowsEl.innerHTML = "";
-      for (const name of names) {
-        const linear = LINEAR_JOINTS.has(name);
-        const [lo, hi] = JOINT_LIMITS[name] || [-180, 180];
-        const unit = linear ? "m" : "°";
-        const step = linear ? 0.01 : 0.5;
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><strong>${name}</strong></td>
-          <td id="r-${name}">—</td>
-          <td id="d-${name}">—</td>
-          <td id="v-${name}">—</td>
-          <td class="divider">
-            <div class="target-cell">
-              <input type="number" class="target-input" id="t-${name}"
-                     value="0.00" step="${step}" min="${lo}" max="${hi}">
-            </div>
-          </td>
-          <td><span class="limit-hint">${lo}${unit} … ${hi}${unit}</span></td>
-        `;
-        rowsEl.appendChild(tr);
+
+      for (const name of JOINT_ORDER) {
+          const linear = LINEAR_JOINTS.has(name);
+          const [lo, hi] = JOINT_LIMITS[name] || [-180, 180];
+          const unit = linear ? "m" : "°";
+          const step = linear ? 0.01 : 0.5;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><strong>${name}</strong></td>
+            <td id="r-${name}">—</td>
+            <td id="d-${name}">—</td>
+            <td id="v-${name}">—</td>
+            <td class="divider">
+              <div class="target-cell">
+                <input type="number" class="target-input" id="t-${name}"
+                      value="0.00" step="${step}" min="${lo}" max="${hi}">
+              </div>
+            </td>
+            <td><span class="limit-hint">${lo}${unit} … ${hi}${unit}</span></td>
+          `;
+          rowsEl.appendChild(tr);
       }
+
       initialized = true;
-    }
+  }
 
     function updateRows(joints) {
       for (const j of joints) {
@@ -362,7 +365,7 @@ HTML_PAGE = """<!doctype html>
       emptyEl.hidden    = true;
       tableEl.hidden    = false;
       controlsEl.hidden = false;
-      if (!initialized) initRows(state.joints);
+      if (!initialized) initRows();
       updateRows(state.joints);
       updatePose(state.end_effector_pose);
       if (state.status && modeLineEl) {

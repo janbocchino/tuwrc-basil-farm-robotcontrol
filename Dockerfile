@@ -50,9 +50,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN mkdir -p /root/ros2_ws/src
 
-RUN git clone --branch v2-main --single-branch \
-    https://github.com/orbbec/OrbbecSDK_ROS2.git \
-    /root/ros2_ws/src/OrbbecSDK_ROS2
+RUN git -c http.lowSpeedLimit=1000 \
+        -c http.lowSpeedTime=300 \
+        clone --branch v2-main --single-branch \
+        https://github.com/orbbec/OrbbecSDK_ROS2.git \
+        /root/ros2_ws/src/OrbbecSDK_ROS2
 
 RUN pip install st3215 --break-system-packages
 

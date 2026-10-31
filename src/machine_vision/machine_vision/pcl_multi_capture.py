@@ -62,14 +62,14 @@ class Fuse(Node):
         self.declare_parameter("min_range", 0.1)
         self.declare_parameter("max_range", 0.6)
         # ROI in target frame [xmin, ymin, zmin, xmax, ymax, zmax]; recommended
-        self.declare_parameter("use_roi", False)
+        self.declare_parameter("use_roi", True)
         self.declare_parameter("roi", [-0.5, -0.5, 0.0, 0.5, 0.5, 0.6])
         # ICP
         self.declare_parameter("use_icp", True)
-        self.declare_parameter("icp_voxel", 0.003)      # downsample used for ICP
-        self.declare_parameter("icp_max_dist", 0.01)    # max correspondence dist (m)
+        self.declare_parameter("icp_voxel", 0.002)      # downsample used for ICP
+        self.declare_parameter("icp_max_dist", 0.05)    # max correspondence dist (m)
         self.declare_parameter("icp_min_fitness", 0.3)  # reject if overlap lower
-        self.declare_parameter("icp_max_shift", 0.03)   # reject correction > 3 cm
+        self.declare_parameter("icp_max_shift", 0.03)   # reject correction > 5 cm
         self.declare_parameter("icp_max_rot_deg", 5.0)  # reject correction > 5 deg
 
         self.buf = Buffer()
@@ -104,7 +104,7 @@ class Fuse(Node):
         except Exception as e:
             res.success, res.message = False, f"tf failed: {e}"
             return res
-
+        
         xyz, rgb = cloud_to_np(msg)
         d = np.linalg.norm(xyz, axis=1)
         keep = (d > self.get_parameter("min_range").value) & \
@@ -114,6 +114,13 @@ class Fuse(Node):
 
         T = tf_to_matrix(tf)
         xyz = xyz @ T[:3, :3].T + T[:3, 3]
+        
+        self.get_logger().info(
+                   f"Cloud frame={msg.header.frame_id}, "
+                    f"stamp={msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}, "
+                    f"TF translation="
+                    f"({T[0, 3]:.4f}, {T[1, 3]:.4f}, {T[2, 3]:.4f})"
+                )
 
         if self.get_parameter("use_roi").value:
             r = self.get_parameter("roi").value

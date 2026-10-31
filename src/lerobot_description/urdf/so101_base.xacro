@@ -1,4 +1,4 @@
-	<?xml version="1.0"?>
+<?xml version="1.0"?>
 
 	<!--
 	This file is based on the SO-ARM100 model from:
@@ -21,7 +21,7 @@
 	-->
 	<xacro:arg name="rail_lower" default="0.0" />
 	<xacro:arg name="rail_upper" default="0.715" />
-	<xacro:arg name="rail_zero_x" default="-0.3575" />
+	<xacro:arg name="rail_zero_x" default="0.0" />
 	<xacro:arg name="rail_velocity" default="1.0" />
 	<xacro:arg name="rail_mount_x" default="-0.03" />
 	<xacro:arg name="rail_mount_y" default="0.0" />
@@ -35,19 +35,33 @@
 			with the measured gripper-to-camera rigid transform before using point
 			clouds for world-coordinate perception.
 		-->
-		<xacro:arg name="camera_mount_x"     default="-0.0616" />
-		<xacro:arg name="camera_mount_y"     default="0.0032" />
-		<xacro:arg name="camera_mount_z"     default="0.0226" />
-		<xacro:arg name="camera_mount_roll"  default="1.5708" />   <!-- option A; use -1.5708 for option B -->
-		<xacro:arg name="camera_mount_pitch" default="0.0" />
-		<xacro:arg name="camera_mount_yaw"   default="-1.3360" />
+		<!-- 
+			<xacro:arg name="camera_mount_x"     default="-0.0616" />
+			<xacro:arg name="camera_mount_y"     default="0.0032" />
+			<xacro:arg name="camera_mount_z"     default="0.0226" />
+			<xacro:arg name="camera_mount_roll"  default="-1.5708" />option A; use -1.5708 for option B
+			<xacro:arg name="camera_mount_pitch" default="0.0" />
+			<xacro:arg name="camera_mount_yaw"   default="-1.3360" /> 
+		-->
 
-		<!-- Fixed world and provisional X rail. -->
+		<xacro:arg name="camera_mount_x"     default="-0.0677" />
+		<xacro:arg name="camera_mount_y"     default="-0.0167" />
+		<xacro:arg name="camera_mount_z"     default="0.0413" />
+		<xacro:arg name="camera_mount_roll"  default="1.6228" />
+		<xacro:arg name="camera_mount_pitch" default="0.0591" />
+		<xacro:arg name="camera_mount_yaw"   default="-1.2905" />
+
+
+		<!-- Fixed world and provisional X rail. 
+		maybe switch back to
+		<origin xyz="-0.5 0 -0.085" rpy="1.5708 0 1.5708" />
+		<origin xyz="-0.5 -0.090 -0.085" rpy="1.5708 0 1.5708" />
+		-->
 		<link name="world" />
 
 		<link name="rail_link">
 			<visual>
-				<origin xyz="-0.5 0 -0.085" rpy="1.5708 0 1.5708" />
+				<origin xyz="-1.0 0 -0.085" rpy="1.5708 0 1.5708" />
 				<geometry>
 					<mesh filename="package://lerobot_description/meshes/rail/rail.stl"
 						scale="0.0001 0.0001 0.0001" />
@@ -55,7 +69,7 @@
 				<material name="3d_printed" />
 			</visual>
 			<visual>
-				<origin xyz="-0.5 -0.090 -0.085" rpy="1.5708 0 1.5708" />
+				<origin xyz="-1.0 -0.090 -0.085" rpy="1.5708 0 1.5708" />
 				<geometry>
 					<mesh filename="package://lerobot_description/meshes/rail/rail.stl"
 						scale="0.0001 0.0001 0.0001" />
@@ -95,7 +109,7 @@
 		<parent link="rail_link" />
 		<child link="carriage_link" />
 		<origin xyz="$(arg rail_zero_x) 0 0" rpy="0 0 0" />
-		<axis xyz="1 0 0" />
+		<axis xyz="-1 0 0" />
 		<limit effort="50" velocity="$(arg rail_velocity)"
 			lower="$(arg rail_lower)" upper="$(arg rail_upper)" />
 	</joint>
@@ -374,7 +388,7 @@
 				<origin xyz="0 -0.028 0.0181" rpy="-1.5708 -1.5708 0" />
 				<geometry>
 					<mesh
-						filename="package://lerobot_description/meshes/so101/wrist_roll_pitch_so101_v2.stl" />
+						filename="package://lerobot_description/meshes/so101/Wrist_Roll_Pitch_SO101 v15.step" />
 				</geometry>
 				<material name="3d_printed" />
 			</visual>
@@ -382,7 +396,7 @@
 				<origin xyz="0 -0.028 0.0181" rpy="-1.5708 -1.5708 0" />
 				<geometry>
 					<mesh
-						filename="package://lerobot_description/meshes/so101/wrist_roll_pitch_so101_v2.stl" />
+						filename="package://lerobot_description/meshes/so101/Wrist_Roll_Pitch_SO101 v15.step" />
 				</geometry>
 			</collision>
 		</link>

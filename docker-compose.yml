@@ -13,6 +13,7 @@ services:
       - log_data:/workspace/log
     devices:
       - /dev/ttyACM0:/dev/ttyACM0
+      - /dev/ttyUSB1:/dev/ttyUSB1
       - /dev/bus/usb:/dev/bus/usb   # needed for the Gemini 2 camera (libusb)
     group_add:
       - dialout
@@ -30,7 +31,9 @@ services:
       - TUWRC_USE_GUI=${TUWRC_USE_GUI:-true}
       - TUWRC_MOCK_RATE=${TUWRC_MOCK_RATE:-20.0}
     device_cgroup_rules:
-      - 'c 189:* rmw'
+      - 'c 189:* rmw'   # usb (camera)
+      - 'c 166:* rmw'   # ttyACM
+      - 'c 188:* rmw' 
     security_opt:
       - label=disable   # Fedora/SELinux workaround; try removing later
     ports:
