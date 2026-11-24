@@ -21,14 +21,14 @@ from .limits import JOINT_LIMITS
 
 ARM_ACTION = "/six_motor_controller/follow_joint_trajectory"
 ARM_JOINTS = ["1", "2", "3", "4", "5", "6"]
-# Conservative default deltas (radians).
+# Conservative default deltas. Joints 1–5 are radians; joint 6 is metres.
 DEFAULT_DELTAS = {
     "1": 0.15,
     "2": 0.10,
     "3": -0.10,
     "4": 0.08,
     "5": 0.0,
-    "6": 0.10,
+    "6": 0.002,
 }
 
 
@@ -103,7 +103,7 @@ def main(argv=None):
         "--delta-deg",
         type=float,
         default=None,
-        help="Optional uniform delta in degrees applied to joints 1-4 and 6.",
+        help="Optional uniform delta in degrees applied to joints 1-4. Joint 6 stays put.",
     )
     args = parser.parse_args(argv)
 
@@ -113,7 +113,9 @@ def main(argv=None):
         if abs(delta) > math.radians(20.0):
             print("delta-deg must be within ±20 degrees.", file=sys.stderr)
             return 2
-        deltas = {name: (delta if name != "5" else 0.0) for name in ARM_JOINTS}
+        deltas = {
+            name: (delta if name not in ("5", "6") else 0.0) for name in ARM_JOINTS
+        }
 
     rclpy.init()
     node = SmallArmMotion()

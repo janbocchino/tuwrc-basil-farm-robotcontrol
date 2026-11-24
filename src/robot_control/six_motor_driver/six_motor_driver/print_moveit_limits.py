@@ -60,6 +60,12 @@ def main() -> int:
             f"  <!-- {name} -->"
         )
 
+    print(
+        "\n# Joint 6 is the v2.1 jaw opening in metres (0 closed, "
+        "0.017 open per jaw). Do not copy the radian span above into the "
+        "URDF. Servo endpoints stay unset until gripper_closed_steps and "
+        "gripper_open_steps are measured."
+    )
     print("\n# MoveIt joint_limits.yaml")
     print("joint_limits:")
     for name, calibration in zip(names, calibrations):

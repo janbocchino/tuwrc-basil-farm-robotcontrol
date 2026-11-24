@@ -28,7 +28,7 @@ Options:
   --no-rviz                do not start RViz
   --no-moveit              do not start MoveIt
   --no-gui                 do not start the browser GUI
-  --camera                 start the physical gripper-mounted Gemini 2
+  --camera                 start the Gemini 2 driver (not mounted on gripper v2.1)
   --colored-point-cloud    also publish the registered RGB point cloud
   --geometry WxH           noVNC desktop size, Docker only (default: 1600x900)
   -h, --help               show this help

@@ -22,6 +22,9 @@ from lerobot_gui.control_validation import (  # noqa: E402
     validate_joint_targets,
 )
 from lerobot_gui.joint_state_store import JointStateStore  # noqa: E402
+from six_motor_driver.gripper_opening import (  # noqa: E402
+    GripperOpeningCalibration,
+)
 from six_motor_driver.trajectory_timing import (  # noqa: E402
     segment_speed_steps_s,
     validate_time_from_start,
@@ -76,6 +79,22 @@ class ControlValidationTests(unittest.TestCase):
         for value in (0, 61, math.nan):
             with self.assertRaises(ValueError):
                 validate_duration(value)
+
+
+class GripperOpeningTests(unittest.TestCase):
+    def test_unset_endpoints_are_not_calibrated(self):
+        gripper = GripperOpeningCalibration(-1, -1)
+        self.assertFalse(gripper.calibrated)
+        with self.assertRaises(RuntimeError):
+            gripper.meters_to_raw(0.0)
+
+    def test_opening_maps_linearly_across_the_step_span(self):
+        gripper = GripperOpeningCalibration(1000, 2024, 0.017)
+        self.assertEqual(1000, gripper.meters_to_raw(0.0))
+        self.assertEqual(2024, gripper.meters_to_raw(0.017))
+        self.assertAlmostEqual(0.0085, gripper.raw_to_meters(1512), places=4)
+        with self.assertRaises(ValueError):
+            gripper.meters_to_raw(0.02)
 
 
 class TrajectoryTimingTests(unittest.TestCase):

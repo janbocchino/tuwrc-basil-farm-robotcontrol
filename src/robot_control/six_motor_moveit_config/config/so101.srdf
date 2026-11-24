@@ -29,7 +29,7 @@
     <joint name="3" value="-0.2" />
     <joint name="4" value="0.15" />
     <joint name="5" value="0.0" />
-    <joint name="6" value="0.2" />
+    <joint name="6" value="0.008" />
   </group_state>
   <group_state name="pose1" group="so101_with_gripper">
     <joint name="rail_joint" value="0.0" />
@@ -38,7 +38,7 @@
     <joint name="3" value="0.41264083" />
     <joint name="4" value="-0.05062137" />
     <joint name="5" value="-1.80089344" />
-    <joint name="6" value="1.18730113" />
+    <joint name="6" value="0.014" />
   </group_state>
   <group_state name="pose2" group="so101_with_gripper">
     <joint name="rail_joint" value="0.0" />
@@ -47,7 +47,7 @@
     <joint name="3" value="-0.81607778" />
     <joint name="4" value="-0.29145635" />
     <joint name="5" value="1.34990309" />
-    <joint name="6" value="0.07823302" />
+    <joint name="6" value="0.002" />
   </group_state>
   <group_state name="pose3" group="so101_with_gripper">
     <joint name="rail_joint" value="0.0" />
@@ -56,7 +56,7 @@
     <joint name="3" value="-1.32996134" />
     <joint name="4" value="-1.27627202" />
     <joint name="5" value="-0.21168935" />
-    <joint name="6" value="1.71038858" />
+    <joint name="6" value="0.017" />
   </group_state>
 
   <disable_collisions link1="world" link2="rail_link" reason="Adjacent" />
@@ -70,4 +70,6 @@
   <disable_collisions link1="lower_arm" link2="wrist" reason="Adjacent" />
   <disable_collisions link1="wrist" link2="gripper" reason="Adjacent" />
   <disable_collisions link1="gripper" link2="jaw" reason="Adjacent" />
+  <disable_collisions link1="gripper" link2="jaw_opposite" reason="Adjacent" />
+  <disable_collisions link1="jaw" link2="jaw_opposite" reason="Default" />
 </robot>

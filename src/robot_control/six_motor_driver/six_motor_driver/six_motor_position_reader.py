@@ -12,6 +12,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Int32MultiArray, MultiArrayDimension
 
 from .cyclic_calibration import CyclicJointCalibration
+from .gripper_opening import GRIPPER_JOINT, GripperOpeningCalibration
 from .st3215_import import load_st3215
 
 
@@ -36,6 +37,9 @@ class SixMotorPositionReader(Node):
         self.declare_parameter("upper_limits_steps", [4095] * 6)
         self.declare_parameter("zero_positions_steps", [2048] * 6)
         self.declare_parameter("directions", [1] * 6)
+        self.declare_parameter("gripper_closed_steps", -1)
+        self.declare_parameter("gripper_open_steps", -1)
+        self.declare_parameter("gripper_travel_m", 0.017)
         self.declare_parameter("warn_outside_limits", True)
         self.declare_parameter("require_all_servos", True)
         self.declare_parameter(
@@ -141,9 +145,27 @@ class SixMotorPositionReader(Node):
             f"Passiver Positionsleser auf {self.port}; IDs={self.servo_ids}; "
             "es werden keine Motorbefehle gesendet"
         )
+        self.gripper = GripperOpeningCalibration(
+            int(self.get_parameter("gripper_closed_steps").value),
+            int(self.get_parameter("gripper_open_steps").value),
+            float(self.get_parameter("gripper_travel_m").value),
+        )
         for name, servo_id, calibration in zip(
             self.names, self.servo_ids, self.calibrations
         ):
+            if name == GRIPPER_JOINT:
+                if self.gripper.calibrated:
+                    self.get_logger().info(
+                        f"{name}/ID {servo_id}: jaw opening 0–"
+                        f"{self.gripper.travel_m:.3f} m, steps "
+                        f"{self.gripper.closed_steps} → {self.gripper.open_steps}"
+                    )
+                else:
+                    self.get_logger().error(
+                        f"{name}/ID {servo_id}: jaw opening is metres, but "
+                        "gripper endpoints are not calibrated"
+                    )
+                continue
             lower_angle, upper_angle = calibration.angle_limits()
             self.get_logger().info(
                 f"{name}/ID {servo_id}: raw "
@@ -184,40 +206,47 @@ class SixMotorPositionReader(Node):
 
         joint_message = JointState()
         joint_message.header.stamp = self.get_clock().now().to_msg()
-        joint_message.name = list(self.names)
-        joint_message.position = [
-            (
-                calibration.raw_to_angle(value)
-                if value >= 0
-                else math.nan
-            )
-            for value, calibration in zip(
-                positions, self.calibrations
-            )
-        ]
+        joint_message.name = []
+        joint_message.position = []
+        for name, value, calibration in zip(
+            self.names, positions, self.calibrations
+        ):
+            if name == GRIPPER_JOINT and not self.gripper.calibrated:
+                continue
+            if value < 0:
+                position = math.nan
+            elif name == GRIPPER_JOINT:
+                try:
+                    position = self.gripper.raw_to_meters(value)
+                except ValueError:
+                    position = math.nan
+            else:
+                position = calibration.raw_to_angle(value)
+            joint_message.name.append(name)
+            joint_message.position.append(position)
         self.joint_publisher.publish(joint_message)
 
         self.read_count += 1
         if self.print_every and self.read_count % self.print_every == 0:
             outside = [
                 servo_id
-                for servo_id, value, calibration in zip(
-                    self.servo_ids, positions, self.calibrations
+                for name, servo_id, value, calibration in zip(
+                    self.names, self.servo_ids, positions, self.calibrations
                 )
-                if value >= 0 and not calibration.contains(value)
+                if self._outside_angle_window(name, value, calibration)
             ]
             self.get_logger().info(
                 " | ".join(
                     f"ID {servo_id}: {value:4d}"
                     + (
                         " AUSSERHALB"
-                        if value >= 0
-                        and not calibration.contains(value)
+                        if self._outside_angle_window(name, value, calibration)
                         else ""
                     )
                     if value >= 0
                     else f"ID {servo_id}: FEHLER"
-                    for servo_id, value, calibration in zip(
+                    for name, servo_id, value, calibration in zip(
+                        self.names,
                         self.servo_ids,
                         positions,
                         self.calibrations,
@@ -229,6 +258,12 @@ class SixMotorPositionReader(Node):
                     "Außerhalb der kalibrierten Grenzen: IDs "
                     + ", ".join(str(value) for value in outside)
                 )
+
+    @staticmethod
+    def _outside_angle_window(name: str, value: int, calibration) -> bool:
+        if name == GRIPPER_JOINT or value < 0:
+            return False
+        return not calibration.contains(value)
 
     def destroy_node(self):
         try:

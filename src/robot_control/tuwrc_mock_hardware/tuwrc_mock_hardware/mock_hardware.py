@@ -21,8 +21,8 @@ ARM_JOINTS = ["1", "2", "3", "4", "5", "6"]
 RAIL_JOINTS = ["rail_joint"]
 ALL_JOINTS = RAIL_JOINTS + ARM_JOINTS
 
-# Measured URDF limits from Max's so101_base.xacro (+ measured 71.5 cm rail,
-# 0 = left end).
+# Joints 1–5 and the rail are the measured limits. Joint 6 is the v2.1
+# jaw opening in metres (0 closed, 0.017 open per jaw).
 JOINT_LIMITS = {
     "rail_joint": (0.0, 0.715),
     "1": (-2.06780610, 2.06780610),
@@ -30,7 +30,7 @@ JOINT_LIMITS = {
     "3": (-1.68737887, 1.68891285),
     "4": (-1.80702937, 1.80702937),
     "5": (-2.89308777, 2.89308777),
-    "6": (-0.18561168, 2.03252454),
+    "6": (0.0, 0.017),
 }
 
 

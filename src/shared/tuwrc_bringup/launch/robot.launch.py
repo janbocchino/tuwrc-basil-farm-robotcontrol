@@ -28,8 +28,8 @@ def launch_setup(context):
     use_camera = LaunchConfiguration("use_camera").perform(context).lower() == "true"
     if use_camera and mode != "hardware":
         raise RuntimeError(
-            "use_camera=true requires mode=hardware so eye-in-hand point clouds "
-            "use the real arm pose"
+            "use_camera=true requires mode=hardware. Gripper v2.1 does not "
+            "carry the camera, so its frames are not on the arm"
         )
 
     port = LaunchConfiguration("port").perform(context)
@@ -194,7 +194,10 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "use_camera",
                 default_value="false",
-                description="Start the physical gripper-mounted Gemini 2.",
+                description=(
+                    "Start the physical Gemini 2. It is not mounted on "
+                    "gripper v2.1."
+                ),
             ),
             DeclareLaunchArgument("camera_serial", default_value=""),
             DeclareLaunchArgument("camera_usb_port", default_value=""),

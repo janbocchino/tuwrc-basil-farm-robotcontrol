@@ -68,17 +68,8 @@ def main() -> None:
         ),
         "Gemini 2 model",
     )
-    require_tokens(
-        robot_urdf,
-        (
-            "gemini2_camera.xacro",
-            "camera_mount_x",
-            "camera_mount_y",
-            "camera_mount_z",
-            'parent="gripper"',
-        ),
-        "robot camera mount",
-    )
+    if "gemini2_camera" in robot_urdf or 'parent="gripper"' in robot_urdf:
+        fail("gripper v2.1 must not carry the Gemini 2")
 
     require_tokens(
         robot_launch,

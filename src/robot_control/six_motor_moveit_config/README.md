@@ -13,7 +13,7 @@ Prefer the unified bringup from the repository root:
 ## Important files
 
 - `config/so101.srdf`: planning group `arm` (`world` → `tcp`) plus gripper
-- `config/joint_limits.yaml`: measured arm limits + 0–0.715 m rail limits
+- `config/joint_limits.yaml`: measured arm limits, 0–0.715 m rail, joint 6 is 0–0.017 m per jaw
 - `config/controllers.yaml`: shared action-controller wiring
 - `config/kinematics.yaml`: inverse-kinematics configuration
 - `config/moveit.rviz`: MoveIt RViz layout

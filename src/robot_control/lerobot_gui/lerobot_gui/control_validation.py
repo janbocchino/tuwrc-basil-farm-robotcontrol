@@ -12,7 +12,7 @@ JOINT_LIMITS = {
     "3": (-96.68, 96.77),
     "4": (-103.53, 103.53),
     "5": (-165.76, 165.76),
-    "6": (-10.64, 116.45),
+    "6": (0.0, 0.017),
 }
 MIN_DURATION_SEC = 0.1
 MAX_DURATION_SEC = 60.0
@@ -43,7 +43,7 @@ def validate_joint_targets(joints) -> dict[str, float]:
             raise ValueError(f"{name} target must be finite")
         lower, upper = JOINT_LIMITS[name]
         if not lower <= value <= upper:
-            unit = "m" if name == "rail_joint" else "deg"
+            unit = "m" if name in ("rail_joint", "6") else "deg"
             raise ValueError(
                 f"{name} target {value:g} {unit} is outside "
                 f"[{lower:g}, {upper:g}] {unit}"

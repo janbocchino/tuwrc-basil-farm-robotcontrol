@@ -10,15 +10,16 @@ import rclpy
 
 from .leaf_pick_imitation import LeafPickImitation
 
-# Home pose (radians), read from the real arm via /joint_states on 2026-10-10
-# with the current six_motor_calibration.yaml. Re-measure after recalibrating.
+# Joints 1–5 were read from the real arm on 2026-10-10. Joint 6 is the v2.1
+# jaw opening in metres (0 = closed). Re-measure joint 6 after the servo
+# endpoints are calibrated.
 HOME_ARM = {
     "1": 0.0107,
     "2": -1.5616,
     "3": 1.5447,
     "4": 0.0123,
     "5": 2.3363,
-    "6": -0.6995,
+    "6": 0.0,
 }
 
 # Rail home in metres from the left end (lm_left = 0, set by ~/calibrate).
