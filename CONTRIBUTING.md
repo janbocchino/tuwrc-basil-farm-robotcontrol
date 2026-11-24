@@ -68,12 +68,10 @@ Use squash merge by default so `main` stays readable.
 ## Review and merge rules
 
 - `main` should always build and be usable by the team.
-- Require at least one approval from the repository owner before merging.
-- Require passing tests/build checks before merging when CI is available.
-- Request review from the affected workstream lead when a PR touches their
-  folder.
-- Request extra review for `src/shared/`, calibration, or hardware-control
-  changes.
+- Copilot reviews pull requests and may approve them for automatic merging.
+- Require passing contract tests and the ROS build before merging.
+- Document physical verification for calibration and hardware-control changes;
+  automated review and CI cannot verify physical robot behavior.
 - Prefer small PRs over large mixed changes.
 
 ## Measurements and calibration
