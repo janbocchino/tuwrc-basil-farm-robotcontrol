@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Imitate a front reach + leaf pick/cut using the parallel-jaw gripper.
+"""Imitate a front reach + leaf pick using the v2.1 parallel gripper.
 
-No cutter tool is modeled: joint 6 open/close stands in for the snip.
-Hardware rail motion requires calibration plus the normal hardware confirmation.
+Joint 6 is the jaw opening in metres (0 closed, 0.017 fully open per jaw).
+Closing the jaws is the bypass cut. The servo endpoints are not calibrated
+yet, so hardware mode holds joint 6 and moves only the arm. Hardware rail
+motion still requires rail calibration and the normal hardware confirmation.
 """
 
 from __future__ import annotations
@@ -27,11 +29,12 @@ RAIL_ACTION = "/rail_controller/follow_joint_trajectory"
 ARM_JOINTS = ["1", "2", "3", "4", "5", "6"]
 RAIL_JOINT = "rail_joint"
 
-# Larger jaw values ≈ open on the measured SO-101 calibration.
-GRIPPER_OPEN = 1.25
-GRIPPER_CLOSED = 0.08
+# Metres of travel per jaw. 0.017 m is the 34 mm opening.
+GRIPPER_OPEN = 0.017
+GRIPPER_CLOSED = 0.0
 
-# Absolute arm waypoints (radians) for a front reach + snip imitation.
+# Absolute arm waypoints for a front reach and close. Joints 1–5 are
+# radians; joint 6 is metres of jaw opening.
 # Tuned well inside measured limits; assumes the arm starts near home (zeros).
 def _arm(j1: float, j2: float, j3: float, j4: float, j5: float, j6: float) -> dict[str, float]:
     return {"1": j1, "2": j2, "3": j3, "4": j4, "5": j5, "6": j6}
@@ -141,7 +144,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description=(
             "Imitate moving to the front and picking/cutting a leaf "
-            "with the jaw gripper (no cutter tool)."
+            "with the v2.1 parallel gripper (joint 6 in metres)."
         )
     )
     parser.add_argument(

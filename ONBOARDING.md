@@ -25,8 +25,8 @@ The platform combines:
 
 - a rail that moves the robot along the growing area;
 - a six-servo SO-101 arm;
-- a gripper at the end of the arm;
-- an eye-in-hand Gemini 2 depth camera;
+- a v2.1 parallel gripper at the end of the arm (rack and pinion, both jaws move);
+- a Gemini 2 depth camera, not mounted on this gripper;
 - motion-planning and control software built on ROS 2;
 - a browser interface and 3D view for operators and developers.
 
@@ -71,8 +71,7 @@ assumptions.
 
 - Farm-level monitoring, scheduling, task selection, and outcome recording are
 not yet implemented.
-- The camera mount position and orientation are placeholders until measured on
-the assembled robot.
+- The Gemini 2 is not on gripper v2.1. A new camera mount is not in the model.
 - The rail-to-arm mount geometry is provisional until checked against CAD or
 physical measurements.
 - The software does not yet detect and select basil leaves.
@@ -80,8 +79,11 @@ physical measurements.
 - There is no complete autonomous sense-plan-act workflow.
 - The current leaf-pick example follows fixed waypoints; it does not react to
 a real plant.
-- The gripper currently stands in for a cutting or harvesting tool. A final
-end-effector task and design still need to be agreed and validated.
+- Gripper v2.1 is in the model as a centered parallel jaw with a bypass
+blade. The printed parts still need assembly, and the servo end positions
+are not calibrated, so hardware mode will not move joint 6 yet.
+- The jaw shape in the model is a box stand-in. Replace it when the STEP
+files are available.
 - Repeatability, collision clearance, and plant interaction need structured
 testing on the real platform.
 

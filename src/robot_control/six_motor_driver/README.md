@@ -33,6 +33,12 @@ ros2 run six_motor_driver show_six_positions \
   --port /dev/serial/by-id/<arm-device>
 ```
 
+Joint 6 is no longer an angle. It is the v2.1 jaw opening in metres
+(0 closed, 0.017 open per jaw). The parameters `gripper_closed_steps` and
+`gripper_open_steps` stay at -1 until those two servo positions are measured.
+While they are unset, trajectories may still move joints 1–5; joint 6 is
+held and a gripper-only goal is rejected.
+
 Do not edit calibration values without a documented physical measurement.
 See the root [README](../../../README.md) and
 [CONTRIBUTING](../../../CONTRIBUTING.md).

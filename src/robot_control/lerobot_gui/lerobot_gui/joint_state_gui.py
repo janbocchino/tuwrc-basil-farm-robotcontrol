@@ -29,7 +29,8 @@ from .joint_state_store import JointStateStore
 
 ARM_JOINTS = {"1", "2", "3", "4", "5"}
 GRIPPER_JOINTS = {"6"}
-LINEAR_JOINTS = {"rail_joint"}  # prismatic, values in meters (not radians)
+LINEAR_JOINTS = {"rail_joint"}  # rail action; values in meters
+METER_JOINTS = {"rail_joint", "6"}  # GUI already sends these in meters
 ARM_ACTION_JOINTS = {"1", "2", "3", "4", "5", "6"}
 # Pose reference frame: must be a FIXED frame. "base" moves with the rail
 # carriage now, so targets/display are expressed in "world" instead.
@@ -42,11 +43,13 @@ RAIL_ACTION_NAME = "/rail_controller/follow_joint_trajectory"
 
 # TCP pose with every joint at 0 (matches the "home" group state in the SRDF).
 # Position in meters, orientation in degrees, expressed in BASE_FRAME (world).
+# Y is 53.4 mm further along the approach than the old 90 mm fingertip,
+# because the v2.1 contact zone is 100 mm in front of the rods.
 # Used by the "Home" button in the task-space section - resetting that section
 # to 0/0/0 would be meaningless (that point sits inside the base, and an
 # orientation of 0/0/0 would mean the gripper points straight up).
 HOME_POSE = {
-    "x": -0.0094, "y": -0.3675, "z": 0.2819,
+    "x": -0.0094, "y": -0.4209, "z": 0.2819,
     "roll": 90.0, "pitch": 0.0, "yaw": 0.0,
 }
 
@@ -252,7 +255,7 @@ HTML_PAGE = """<!doctype html>
 
   <script>
     const JOINT_ORDER  = ["rail_joint", "1", "2", "3", "4", "5", "6"];
-    const LINEAR_JOINTS = new Set(["rail_joint"]);   // prismatic, values in meters
+    const LINEAR_JOINTS = new Set(["rail_joint", "6"]);   // prismatic, values in meters
     const JOINT_LIMITS = __JOINT_LIMITS__;
     const modeLineEl = document.getElementById("mode-line");
 
@@ -289,7 +292,7 @@ HTML_PAGE = """<!doctype html>
         const linear = LINEAR_JOINTS.has(name);
         const [lo, hi] = JOINT_LIMITS[name] || [-180, 180];
         const unit = linear ? "m" : "°";
-        const step = linear ? 0.01 : 0.5;
+        const step = name === "6" ? 0.001 : (linear ? 0.01 : 0.5);
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><strong>${name}</strong></td>
@@ -680,7 +683,7 @@ def make_request_handler(store: JointStateStore, node: JointStateNode):
                     joints_in = validate_joint_targets(body.get("joints", {}))
                     duration = validate_duration(body.get("duration", 2.0))
                     joints_rad = {
-                        k: (float(v) if k in LINEAR_JOINTS else math.radians(float(v)))
+                        k: (float(v) if k in METER_JOINTS else math.radians(float(v)))
                         for k, v in joints_in.items()
                     }
                     node.send_trajectory(joints_rad, duration)

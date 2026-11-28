@@ -19,7 +19,9 @@ from std_msgs.msg import Int32MultiArray, MultiArrayDimension
 from .cyclic_calibration import (
     STEPS_PER_REVOLUTION,
     CyclicJointCalibration,
+    forward_distance,
 )
+from .gripper_opening import GRIPPER_JOINT, GripperOpeningCalibration
 from .trajectory_timing import (
     segment_speed_steps_s,
     validate_time_from_start,
@@ -44,6 +46,9 @@ class SixMotorDriver(Node):
         self.declare_parameter("upper_limits_steps", [4095] * 6)
         self.declare_parameter("zero_positions_steps", [2048] * 6)
         self.declare_parameter("directions", [1] * 6)
+        self.declare_parameter("gripper_closed_steps", -1)
+        self.declare_parameter("gripper_open_steps", -1)
+        self.declare_parameter("gripper_travel_m", 0.017)
         self.declare_parameter(
             "action_name",
             "/six_motor_controller/follow_joint_trajectory",
@@ -83,6 +88,26 @@ class SixMotorDriver(Node):
             calibration.angle_limits()
             for calibration in self.calibrations
         ]
+        if GRIPPER_JOINT not in self.names:
+            raise RuntimeError("names must include gripper joint '6'")
+        self.gripper_index = self.names.index(GRIPPER_JOINT)
+        self.gripper = GripperOpeningCalibration(
+            int(self.get_parameter("gripper_closed_steps").value),
+            int(self.get_parameter("gripper_open_steps").value),
+            float(self.get_parameter("gripper_travel_m").value),
+        )
+        if self.gripper.calibrated:
+            self.get_logger().info(
+                "Joint 6 jaw opening "
+                f"0–{self.gripper.travel_m:.3f} m mapped from servo steps "
+                f"{self.gripper.closed_steps} → {self.gripper.open_steps}"
+            )
+        else:
+            self.get_logger().error(
+                "Joint 6 is the v2.1 jaw opening (0–0.017 m per jaw), but "
+                "gripper_closed_steps and gripper_open_steps are not set. "
+                "The servo will not be moved until those endpoints are measured."
+            )
         self.action_name = str(self.get_parameter("action_name").value)
         self.center_on_start = bool(
             self.get_parameter("center_on_start").value
@@ -134,6 +159,8 @@ class SixMotorDriver(Node):
                     continue
                 self.last_raw[index] = int(raw)
                 self.holdable[index] = True
+                if index == self.gripper_index:
+                    continue
                 if not self.calibrations[index].contains(int(raw)):
                     self._disable_servo(
                         index,
@@ -578,7 +605,16 @@ class SixMotorDriver(Node):
                     f"wird übersprungen: {self.disabled_reasons[index]}"
                 )
                 continue
-            target = self.calibrations[index].zero_steps
+            if index == self.gripper_index and not self.gripper.calibrated:
+                self.get_logger().warning(
+                    f"[{index + 1}/{self.COUNT}] Servo ID {servo_id} "
+                    "bleibt stehen: Greifer-Endlagen sind nicht kalibriert"
+                )
+                continue
+            if index == self.gripper_index:
+                target = self.gripper.meters_to_raw(0.0)
+            else:
+                target = self.calibrations[index].zero_steps
             self.get_logger().warning(
                 f"[{index + 1}/{self.COUNT}] Servo ID {servo_id} "
                 f"fährt zur Mitte {target}"
@@ -820,6 +856,16 @@ class SixMotorDriver(Node):
                     f"Ist={self.last_raw}"
                 )
 
+    def _joint_position_to_raw(self, index: int, calibration, position: float) -> int:
+        if index == self.gripper_index:
+            return self.gripper.meters_to_raw(float(position))
+        return calibration.angle_to_raw(float(position))
+
+    def _step_progress(self, index: int, calibration, raw: int) -> int:
+        if index == self.gripper_index and self.gripper.calibrated:
+            return forward_distance(self.gripper.closed_steps, raw)
+        return calibration.progress_steps(raw)
+
     def publish_joint_state(self):
         raw_values = self._read_raw()
         raw_message = Int32MultiArray()
@@ -842,8 +888,18 @@ class SixMotorDriver(Node):
         ):
             if raw < 0:
                 continue
+            if name == GRIPPER_JOINT:
+                if not self.gripper.calibrated:
+                    continue
+                try:
+                    position = self.gripper.raw_to_meters(raw)
+                except ValueError as error:
+                    self.get_logger().warning(str(error), throttle_duration_sec=5.0)
+                    continue
+            else:
+                position = calibration.raw_to_angle(raw)
             message.name.append(name)
-            message.position.append(calibration.raw_to_angle(raw))
+            message.position.append(position)
         self.joint_publisher.publish(message)
 
     def publish_active_mask(self):
@@ -902,14 +958,21 @@ class SixMotorDriver(Node):
         except ValueError as error:
             self.get_logger().error(str(error))
             return GoalResponse.REJECT
-        requested_limits = [
-            self.angle_limits[index] for index in requested_indices
-        ]
         for point in request.trajectory.points:
             if len(point.positions) != len(requested_indices):
                 return GoalResponse.REJECT
-            for angle, limits in zip(point.positions, requested_limits):
-                if not limits[0] <= float(angle) <= limits[1]:
+            for index, position in zip(requested_indices, point.positions):
+                if index == self.gripper_index and not self.gripper.calibrated:
+                    continue
+                if index == self.gripper_index:
+                    lower, upper = self.gripper.limits()
+                else:
+                    lower, upper = self.angle_limits[index]
+                if not lower <= float(position) <= upper:
+                    self.get_logger().error(
+                        f"Gelenk {self.names[index]} Ziel {float(position):.4f} "
+                        f"außerhalb [{lower:.4f}, {upper:.4f}]"
+                    )
                     return GoalResponse.REJECT
         return GoalResponse.ACCEPT
 
@@ -920,10 +983,38 @@ class SixMotorDriver(Node):
     def execute(self, goal_handle):
         result = FollowJointTrajectory.Result()
         try:
+            joint_names = list(goal_handle.request.trajectory.joint_names)
             requested_indices = [
-                self.names.index(name)
-                for name in goal_handle.request.trajectory.joint_names
+                self.names.index(name) for name in joint_names
             ]
+            if (
+                self.gripper_index in requested_indices
+                and not self.gripper.calibrated
+            ):
+                self.get_logger().error(
+                    "Joint 6 was in the trajectory but the gripper servo "
+                    "endpoints are not calibrated, so the jaw was held. "
+                    "Set gripper_closed_steps and gripper_open_steps after "
+                    "measuring the closed and open positions."
+                )
+                keep = [
+                    index
+                    for index in requested_indices
+                    if index != self.gripper_index
+                ]
+                if not keep:
+                    raise RuntimeError(
+                        "Joint 6 cannot be commanded until gripper endpoints "
+                        "are calibrated"
+                    )
+                drop = requested_indices.index(self.gripper_index)
+                requested_indices = keep
+                for point in goal_handle.request.trajectory.points:
+                    point.positions = [
+                        position
+                        for index, position in enumerate(point.positions)
+                        if index != drop
+                    ]
             self._hold_active_servos_at_current_positions(self.center_speed)
             self._enable_indices(requested_indices, self.max_speed)
             requested_calibrations = [
@@ -940,8 +1031,9 @@ class SixMotorDriver(Node):
                     result.error_code = FollowJointTrajectory.Result.SUCCESSFUL
                     return result
                 targets = [
-                    calibration.angle_to_raw(float(angle))
-                    for calibration, angle in zip(
+                    self._joint_position_to_raw(index, calibration, position)
+                    for index, calibration, position in zip(
+                        requested_indices,
                         requested_calibrations,
                         point.positions,
                     )
@@ -953,15 +1045,16 @@ class SixMotorDriver(Node):
                 segment_duration = requested_time - previous_requested_time
                 current_raw = self._read_raw()
                 start_progress = [
-                    calibration.progress_steps(current_raw[index])
+                    self._step_progress(index, calibration, current_raw[index])
                     for index, calibration in zip(
                         requested_indices,
                         requested_calibrations,
                     )
                 ]
                 target_progress = [
-                    calibration.progress_steps(target)
-                    for calibration, target in zip(
+                    self._step_progress(index, calibration, target)
+                    for index, calibration, target in zip(
+                        requested_indices,
                         requested_calibrations,
                         targets,
                     )

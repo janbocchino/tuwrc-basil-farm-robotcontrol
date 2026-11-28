@@ -87,6 +87,8 @@ Do **not** change these without documented physical verification:
 
 Rail mount offsets (`rail_mount_*` args) may be adjusted for visualization, but note that they are provisional until CAD data arrives.
 
+Joint 6 is the v2.1 jaw opening in metres: 0 is closed and 0.017 is fully open per jaw. That travel is the design value, not a servo measurement. Do not copy the old radian span back into it. The driver will not move joint 6 until `gripper_closed_steps` and `gripper_open_steps` are measured on the assembled gripper. The jaw meshes are boxes until the STEP model is aligned; the rod plane is 20 mm in front of the servo horn.
+
 ## Meshes / Git LFS
 
 - STL/mesh binaries are tracked with Git LFS (see `.gitattributes`)

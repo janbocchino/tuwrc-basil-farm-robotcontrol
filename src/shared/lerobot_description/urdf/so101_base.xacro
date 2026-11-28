@@ -7,8 +7,6 @@
 -->
 
 <robot name="so101_rail" xmlns:xacro="http://www.ros.org/wiki/xacro">
-	<xacro:include filename="$(find lerobot_description)/urdf/gemini2_camera.xacro" />
-
 	<!--
 		Rail geometry is provisional until the assembled CAD model is available.
 		All mounting values are arguments so the measured SO-101 chain below never
@@ -29,18 +27,6 @@
 	<xacro:arg name="rail_mount_roll" default="0.0" />
 	<xacro:arg name="rail_mount_pitch" default="0.0" />
 	<xacro:arg name="rail_mount_yaw" default="0.0" />
-
-	<!--
-		PROVISIONAL Gemini 2 mount transform. Replace these zero placeholders
-		with the measured gripper-to-camera rigid transform before using point
-		clouds for world-coordinate perception.
-	-->
-	<xacro:arg name="camera_mount_x" default="0.0" />
-	<xacro:arg name="camera_mount_y" default="0.0" />
-	<xacro:arg name="camera_mount_z" default="0.0" />
-	<xacro:arg name="camera_mount_roll" default="0.0" />
-	<xacro:arg name="camera_mount_pitch" default="0.0" />
-	<xacro:arg name="camera_mount_yaw" default="0.0" />
 
 	<!-- Fixed world and provisional X rail. -->
 	<link name="world" />
@@ -427,54 +413,116 @@
 					filename="package://lerobot_description/meshes/so101/wrist_roll_follower_so101_v1.stl" />
 			</geometry>
 		</collision>
-	</link>
-
-	<!-- Link jaw -->
-	<link name="jaw">
-		<inertial>
-			<origin xyz="-0.00157495 -0.0300244 0.0192755" rpy="0 0 0" />
-			<mass value="0.012" />
-			<inertia ixx="6.61427e-06" ixy="-3.19807e-07" ixz="-5.90717e-09" iyy="1.89032e-06"
-				iyz="-1.09945e-07" izz="5.28738e-06" />
-		</inertial>
-		<!-- Part moving_jaw_so101_v1 -->
+		<!--
+			Gripper v2.1 frame. Stand-in boxes until the STEP model is aligned.
+			78 mm across the rod axis, wrapped around the servo. The camera
+			holder is gone: nothing is mounted outboard of this frame.
+		-->
 		<visual>
-			<origin xyz="-5.55112e-17 -1.94746e-17 0.0189" rpy="9.53145e-17 -4.66093e-24 0" />
+			<origin xyz="0 0 -0.030" rpy="0 0 0" />
 			<geometry>
-				<mesh filename="package://lerobot_description/meshes/so101/moving_jaw_so101_v1.stl" />
+				<box size="0.078 0.036 0.032" />
 			</geometry>
 			<material name="3d_printed" />
 		</visual>
 		<collision>
-			<origin xyz="-5.55112e-17 -1.94746e-17 0.0189" rpy="9.53145e-17 -4.66093e-24 0" />
+			<origin xyz="0 0 -0.030" rpy="0 0 0" />
 			<geometry>
-				<mesh filename="package://lerobot_description/meshes/so101/moving_jaw_so101_v1.stl" />
+				<box size="0.078 0.036 0.032" />
+			</geometry>
+		</collision>
+		<!-- Two 75 mm carbon rods along the opening axis (gripper X). -->
+		<visual>
+			<origin xyz="0 0.012 -0.0434" rpy="0 0 0" />
+			<geometry>
+				<box size="0.075 0.006 0.006" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<visual>
+			<origin xyz="0 -0.012 -0.0434" rpy="0 0 0" />
+			<geometry>
+				<box size="0.075 0.006 0.006" />
+			</geometry>
+			<material name="sts3215" />
+		</visual>
+		<collision>
+			<origin xyz="0 0.012 -0.0434" rpy="0 0 0" />
+			<geometry>
+				<box size="0.075 0.006 0.006" />
+			</geometry>
+		</collision>
+		<collision>
+			<origin xyz="0 -0.012 -0.0434" rpy="0 0 0" />
+			<geometry>
+				<box size="0.075 0.006 0.006" />
 			</geometry>
 		</collision>
 	</link>
 
-	<!-- Tool center point: Z is the approach direction at the grasp point. -->
+	<!--
+		One v2.1 jaw. x_sign is +1 for the jaw that opens along +X and -1 for
+		the other. The inner face sits on the jaw origin, so joint position 0
+		closes both faces on the centerline. The finger reaches 100 mm in
+		front of the rods (gripper -Z). The blade visual is the 2 mm bypass
+		edge and is not a collision shape.
+	-->
+	<xacro:macro name="v21_jaw" params="name x_sign">
+		<link name="${name}">
+			<inertial>
+				<origin xyz="0 0 -0.050" rpy="0 0 0" />
+				<mass value="0.037" />
+				<inertia ixx="3.2e-05" ixy="0" ixz="0" iyy="3.1e-05" iyz="0" izz="1.7e-06" />
+			</inertial>
+			<visual>
+				<origin xyz="${float(x_sign) * 0.006} 0 -0.050" rpy="0 0 0" />
+				<geometry>
+					<box size="0.008 0.022 0.100" />
+				</geometry>
+				<material name="3d_printed" />
+			</visual>
+			<collision>
+				<origin xyz="${float(x_sign) * 0.006} 0 -0.050" rpy="0 0 0" />
+				<geometry>
+					<box size="0.008 0.022 0.100" />
+				</geometry>
+			</collision>
+			<visual>
+				<origin xyz="${float(x_sign) * -0.001} -0.004 -0.055" rpy="0 0 0" />
+				<geometry>
+					<box size="0.002 0.009 0.023" />
+				</geometry>
+				<material name="sts3215" />
+			</visual>
+		</link>
+	</xacro:macro>
+
+	<xacro:v21_jaw name="jaw" x_sign="1" />
+	<xacro:v21_jaw name="jaw_opposite" x_sign="-1" />
+
+	<!--
+		Tool center point at the contact zone, 100 mm in front of the rod
+		plane (rod plane z=-0.0434, 20 mm ahead of the servo horn). Z is the
+		approach direction.
+	-->
 	<link name="tcp" />
 
 	<joint name="gripper_to_tcp" type="fixed">
 		<parent link="gripper" />
 		<child link="tcp" />
-		<origin xyz="0 0 -0.090" rpy="3.14159 0 1.5708" />
+		<origin xyz="0 0 -0.1434" rpy="3.14159 0 1.5708" />
 	</joint>
 
-	<!-- Eye-in-hand RGB-D camera; optical child frames come from orbbec_camera. -->
-	<xacro:gemini2_camera
-		parent="gripper"
-		xyz="$(arg camera_mount_x) $(arg camera_mount_y) $(arg camera_mount_z)"
-		rpy="$(arg camera_mount_roll) $(arg camera_mount_pitch) $(arg camera_mount_yaw)" />
-
-	<!-- Joint from gripper to jaw -->
-	<joint name="6" type="revolute">
-		<origin xyz="0.0202 0.0188 -0.0234" rpy="1.5708 -5.14108e-17 -1.38655e-14" />
+	<!--
+		Joint 6: opening of each jaw from the centerline, 0 closed to 0.017 m
+		open. jaw_mimic travels the other way by the same amount.
+	-->
+	<joint name="6" type="prismatic">
+		<origin xyz="0 0 -0.0434" rpy="0 0 0" />
 		<parent link="gripper" />
 		<child link="jaw" />
-		<axis xyz="0 0 1" />
-		<limit effort="4.0" velocity="0.8" lower="-0.18561168" upper="2.03252454" />
+		<axis xyz="1 0 0" />
+		<limit effort="10" velocity="0.05" lower="0.0" upper="0.017" />
 	</joint>
 
 	<transmission name="6_trans">
@@ -487,6 +535,15 @@
 			<mechanicalReduction>1</mechanicalReduction>
 		</actuator>
 	</transmission>
+
+	<joint name="jaw_mimic" type="prismatic">
+		<origin xyz="0 0 -0.0434" rpy="0 0 0" />
+		<parent link="gripper" />
+		<child link="jaw_opposite" />
+		<axis xyz="-1 0 0" />
+		<limit effort="10" velocity="0.05" lower="0.0" upper="0.017" />
+		<mimic joint="6" multiplier="1" offset="0" />
+	</joint>
 
 	<!-- Joint from wrist to gripper -->
 	<joint name="5" type="revolute">

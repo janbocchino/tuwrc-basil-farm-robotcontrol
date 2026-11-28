@@ -38,6 +38,18 @@ def main() -> None:
         if token not in text:
             fail(f"URDF missing expected token: {token}")
 
+    for token in (
+        'name="6" type="prismatic"',
+        'upper="0.017"',
+        'mimic joint="6"',
+        'name="jaw_opposite"',
+        'xyz="0 0 -0.1434"',
+    ):
+        if token not in text:
+            fail(f"URDF missing gripper v2.1 token: {token}")
+    if "moving_jaw_so101_v1" in text:
+        fail("URDF still uses the old pivot jaw mesh")
+
     # Max measured limits for joint 1 must remain.
     if "lower=\"-2.06780610\"" not in text or "upper=\"2.06780610\"" not in text:
         fail("Measured joint 1 limits from Max are missing")

@@ -135,7 +135,7 @@ Start bringup with the following command and add the correct ports to it:
 | `--runtime native`      | native on Linux | Required for USB. Docker is refused.                   |
 | `--port PATH`           | `/dev/ttyACM0`  | Arm serial device.                                     |
 | `--rail-port PATH`      | `/dev/ttyUSB1`  | Rail Arduino.                                          |
-| `--camera`              | off             | Gripper-mounted Gemini 2. Requires hardware mode.      |
+| `--camera`              | off             | Gemini 2 driver. Not mounted on gripper v2.1.          |
 | `--colored-point-cloud` | off             | Also publish the RGB point cloud. Turns `--camera` on. |
 
  `--no-rviz`, `--no-moveit`, `--no-gui`, and `--runtime` from [View mode](#31-view-mode) work here too.
@@ -240,11 +240,12 @@ The canonical arm home pose is `HOME_ARM` in
 3:  1.5447 rad
 4:  0.0123 rad
 5:  2.3363 rad
-6: -0.6995 rad
+6:  0.0 m   (v2.1 jaw closed; was -0.6995 rad on the old pivot finger)
 ```
 
-It was measured from the physical arm using the current
-`six_motor_calibration.yaml`. Re-measure it after changing servo calibration:
+Joints 1–5 were measured from the physical arm using the current
+`six_motor_calibration.yaml`. Joint 6 is the new jaw opening and still
+needs its servo endpoints measured. Re-measure after changing calibration:
 
 ```bash
 ros2 topic echo --once --field position /joint_states
@@ -257,6 +258,10 @@ calibration service. `./tools/example go_home` moves the arm to this pose.
 
 - Arm calibration lives in
 `src/robot_control/six_motor_driver/config/six_motor_calibration.yaml`.
+- Joint 6 is the v2.1 parallel gripper: 0 m is closed and 0.017 m is fully
+open on each jaw (34 mm between the jaws). The tool point is 100 mm in
+front of the carbon rods. The driver does not move joint 6 until
+`gripper_closed_steps` and `gripper_open_steps` are measured.
 - Model/planning limits live in `so101_base.xacro` and  
 `six_motor_moveit_config/config/joint_limits.yaml`.
 

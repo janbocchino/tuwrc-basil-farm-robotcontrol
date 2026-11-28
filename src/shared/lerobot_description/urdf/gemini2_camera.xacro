@@ -3,6 +3,9 @@
   <!--
     Geometric model for an Orbbec Gemini 2.
 
+    Gripper v2.1 does not include this mount. Call the macro only from a
+    parent link that has a measured camera pose.
+
     This defines only the robot-side camera_link. The Orbbec driver owns the
     calibrated color, depth, IR and optical frames below camera_link.
   -->
